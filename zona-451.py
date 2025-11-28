@@ -1077,9 +1077,9 @@ def upd_hero():
         return
     ox = PX
     oy = PY
-    if map_coll(PX+INP_X, PY, 4, 9) == 0:
+    if map_coll(PX+INP_X, PY, 4, 10) == 0:
         PX = PX + INP_X
-    if map_coll(PX, PY+INP_Y, 4, 9) == 0:
+    if map_coll(PX, PY+INP_Y, 4, 10) == 0:
         PY = PY + INP_Y
     if (INP_X > 0) & ((HERO_DIR == 2) | (INP_Y == 0)):
         HERO_DIR = 0
