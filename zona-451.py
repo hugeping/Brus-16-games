@@ -155,20 +155,37 @@ ALIEN_MASK =  0x1F00
 
 MAP = (
 '''
-#######@#######
-#             #
-#             #
-#             #
-#             #
-#             #
-#             #
+###############
 #      @      #
-# #*##   ##*# #
-#             #
-#             #
-#             #
-#             #
-#             #
+# ########### #
+# ###*   *### #
+# ##### ##### #
+# ##### ##### #
+# ####   #### #
+#      E      #
+# ####   #### #
+# ##### ##### #
+# ##### ##### #
+# ##### ##### #
+# ##### ##### #
+#*###*   *###*#
+#######&#######''',
+
+'''
+#@#############
+# ###&   &###*#
+# ##### ##### #
+# ##### ##### #
+# ##### ##### #
+# ##### ##### #
+# ####   #### #
+#      E      #
+# ####   #### #
+# ##### ##### #
+# ##### ##### #
+# ##### ##### #
+# ##### ##### #
+#*###*   *###*#
 ###############''',
 
 '''
@@ -398,7 +415,7 @@ def loadlev():
     PADS_NR = 0
     SPAWNS_NR = 0
     SPAWN_ID = 0
-    SPAWN_FRAME = 0
+    SPAWN_FRAME = FRAMES
 
     TELEPORT_FRAME = FRAMES
 
@@ -1079,7 +1096,7 @@ def upd_hero():
         LEVEL += {LEVEL_SIZE}
         loadlev()
         return
-    if mgetxy(SPAWN_MAP, PX, PY) & (mgetxy(SPAWN_MAP, ox, oy) != 1):
+    if mgetxy(SPAWN_MAP, PX, PY) & (mgetxy(SPAWN_MAP, ox, oy) != 1) & (SPAWNS_NR > 1):
         i = 0
         cx = PX >> {TWS}
         cy = PY >> {THS}
@@ -1108,7 +1125,7 @@ ALIEN_COLS = [0,0,0,0,0]
 SCROLL_MODE = 0
 
 def setup():
-    LEVEL = MAP + {LEVEL_SIZE}
+    LEVEL = MAP
     i = 0
     while i < {len(ALIEN)}:
         ALIEN_COLS[i] = ALIEN[i*{RECT_SIZE}+5]
