@@ -51,6 +51,8 @@ SPAWNCOL1 = col(200, 0, 22)
 SPAWNCOL2 = col(240, 255, 255)
 SPAWNCOL_RATE = 1
 
+DOORCOL = col(41,132,159)
+
 ALIEN = [
     1, 0, 0, 24, 18, 0,
     0, 8, 6, 8, 2, col(255,0,0),
@@ -61,6 +63,7 @@ ALIEN = [
 
 ALIENS_SIZE = 8*3
 ALIENS = [0]*ALIENS_SIZE
+DOORS = [0]*8
 
 c1 = col(211, 211, 211)
 c2 = col(192, 192, 192)
@@ -144,11 +147,11 @@ H = 15
 PADS_MAP = [0]*H
 SPAWN_MAP = [0]*H
 RADAR_MAP = [0]*H
+DOORS_MAP = [0]*H
 
 ITEM_PAD   = 0x0100
 ITEM_ALIEN = 0x0200
-ITEM_HDOOR = 0x0300
-ITEM_VDOOR = 0x0400
+ITEM_DOOR  = 0x0300
 ITEM_SPAWN = 0xff00
 ITEM_MASK  = 0xff00
 
@@ -156,6 +159,12 @@ ALIEN_DEAD =  0x2000
 ALIEN_HIT =   0x4000
 ALIEN_SIGHT = 0x8000
 ALIEN_MASK =  0x1F00
+ALIEN_HEALTH = 0x16
+
+DOOR_HIT    = 0x8000
+DOOR_DEAD   = 0x4000
+DOOR_MASK   = 0x1F00
+DOOR_HEALTH = 0x16
 
 MAP = (
 '''
@@ -253,10 +262,8 @@ def map2bit(t):
                 items.append((x, y, ITEM_SPAWN))
             elif i == '$':
                 items.append((x, y, ITEM_ALIEN))
-            elif i == '=':
-                items.append((x, y, ITEM_HDOOR))
-            elif i == '|':
-                items.append((x, y, ITEM_VDOOR))
+            elif i == '=' or i == '|':
+                items.append((x, y, ITEM_DOOR))
             x += 1
         r.append(c>>1)
         y += 1
@@ -288,6 +295,7 @@ FRAMES = 0
 PADS_MAP = {PADS_MAP}
 SPAWN_MAP = {SPAWN_MAP}
 RADAR_MAP = {RADAR_MAP}
+DOORS_MAP = {DOORS_MAP}
 SPAWN_FRAME = 0
 PADS_NR = 0
 PADS_MAX = 0
@@ -303,8 +311,10 @@ HEROU = {HEROU}
 HEROD = {HEROD}
 ALIEN = {ALIEN}
 ALIENS = {ALIENS}
-
 ALIENS_NR = 0
+DOORS = {DOORS}
+DOORS_NR = 0
+
 SPAWNS = [0, 0, 0, 0, 0, 0, 0, 0]
 LEVEL = 0
 HERO_DIR = 0
@@ -414,6 +424,14 @@ def c2x(c):
 def c2y(c):
     return c*{TH}+({TH}>>1)
 
+def lookup_door(cx, cy):
+    i = 0
+    while i < DOORS_NR:
+        if c2int(cx, cy) == (DOORS[i]&0xff):
+            return DOORS + i
+        i += 1
+    return 0
+
 def loadlev():
     SCROLL_MODE = 480
     RADAR_MODE = 0
@@ -435,10 +453,14 @@ def loadlev():
     ALIENS_NR = 0
     bzero(ALIENS, {ALIENS_SIZE})
 
+    DOORS_NR = 0
+    bzero(DOORS, 8)
+
     # items
     cb += 1
     bzero(PADS_MAP, {H})
     bzero(SPAWN_MAP, {H})
+    bzero(DOORS_MAP, {H})
     bzero(SPAWNS, 8)
     PADS_NR = 0
     SPAWNS_NR = 0
@@ -462,6 +484,10 @@ def loadlev():
                 SPAWNS_NR += 1
             elif it == {ITEM_ALIEN}:
                 new_alien(c2x(cx), c2y(cy))
+            elif it == {ITEM_DOOR}:
+                mset(DOORS_MAP, cx, cy, 1)
+                DOORS[DOORS_NR] = c2int(cx, cy)
+                DOORS_NR += 1
         cb += 1
     PADS_S = 0
     PADS_MAX = PADS_NR
@@ -520,13 +546,29 @@ def draw_laser(ptr):
 
     return draw_rect(ptr, x, y, abs(ex - x), abs(ey - y), color)
 
+def upd_doors():
+    i = 0
+    while i < DOORS_NR:
+        if bit(DOORS[i], {DOOR_DEAD}):
+            e = ((DOORS[i]&{DOOR_MASK})>>8) + 1
+            if e > 4:
+                mclr(DOORS_MAP, int2cx(DOORS[i]), int2cy(DOORS[i]))
+            else:
+                DOORS[i] &= ~{DOOR_MASK}
+                DOORS[i] |= (e << 8)
+        i += 1
+
 def upd_laser():
     a = ALIENS
     ae = ALIENS + {ALIENS_SIZE}
-
     while a < ae:
         a[2] &= {~ALIEN_HIT}
         a += 3
+
+    i = 0
+    while i < DOORS_NR:
+        DOORS[i] &= ~{DOOR_HIT}
+        i += 1
 
     if (HERO_DEAD > 0) | (abs(FRAMES-TELEPORT_FRAME) < 30):
         LASER_X = -1
@@ -553,7 +595,7 @@ def upd_laser():
 
     a = 0
 
-    while insidexy(ex, ey) & (mgetxy(LEVEL, ex, ey) == 0):
+    while insidexy(ex, ey) & (mgetxy(LEVEL, ex, ey) == 0) & (mgetxy(DOORS_MAP, ex, ey) == 0):
         ex += dx
         ey += dy
         a = scan_alien(ex, ey, 0)
@@ -565,8 +607,20 @@ def upd_laser():
                 a[2] &= ~{ALIEN_MASK}
                 a[2] |= (e << 8)
             elif not_bit(a[2], {ALIEN_DEAD}):
-                a[2] = {ALIEN_DEAD} | 0xf00
+                a[2] = {ALIEN_DEAD} | {DOOR_HEALTH<<8}
             break
+
+    if mgetxy(DOORS_MAP, ex, ey):
+        door = lookup_door(ex>>{TWS}, ey>>{THS})
+        e = ((door[0]&{DOOR_MASK})>>8) + 2
+        door[0] |= {DOOR_HIT}
+        if (e >= 0x1f) & not_bit(door[0], {DOOR_DEAD}):
+            door[0] &= ~{DOOR_MASK}
+            door[0] |= {DOOR_DEAD}
+        elif not_bit(door[0], {DOOR_DEAD}):
+            door[0] &= ~{DOOR_MASK}
+            door[0] |= (e << 8)
+
     ex = max(0, ex)
     ey = max(0, ey)
     ex = min(ex, {W}*{TW}-1)
@@ -708,6 +762,35 @@ def mrect(ptr, cx, cy, xoff, yoff):
         h = {TH}>>1
     elif mget(SPAWN_MAP, cx, cy):
         ptr[5] = rate_color({SPAWNCOL_RATE}, { SPAWNCOL1 }, { SPAWNCOL2 })
+    elif mget(DOORS_MAP, cx, cy):
+        door = lookup_door(cx, cy)
+        if bit(door[0], {DOOR_DEAD}):
+            ptr[5] = 0xff00
+        elif bit(door[0], {DOOR_HIT}):
+            ptr[5] = 0xffff
+        else:
+            ptr[5] = { DOORCOL }
+        if mget(LEVEL, cx + 1, cy) | mget(LEVEL, cx - 1, cy):
+            x = 1
+            y = {TH//2-8}
+            w = {TW-2}
+            h = 16
+        else:
+            x = {TW//2-8}
+            y = 1
+            w = 16
+            h = {TH-2}
+
+        if bit(door[0], {DOOR_DEAD}):
+            x += 7 - (rnd() & 0xf)
+            y += 7 - (rnd() & 0xf)
+            w += 7 - (rnd() & 0xf)
+            h += 7 - (rnd() & 0xf)
+        elif bit(door[0], {DOOR_HIT}):
+            w ^= rnd()&1
+            h ^= rnd()&1
+            x ^= rnd()&1
+            y ^= rnd()&1
     else:
         return ptr
 
@@ -866,11 +949,19 @@ def map_coll(x, y, rx, ry):
         return 1
     if insidexy(x-rx, y+ry) == 0:
         return 1
-    return mgetxy(LEVEL, x, y) | \
+
+    if mgetxy(LEVEL, x, y) | \
         mgetxy(LEVEL, x+rx, y-ry) | \
         mgetxy(LEVEL, x+rx, y+ry) | \
         mgetxy(LEVEL, x-rx, y-ry) | \
-        mgetxy(LEVEL, x-rx, y+ry)
+        mgetxy(LEVEL, x-rx, y+ry):
+        return 1
+
+    return mgetxy(DOORS_MAP, x, y) | \
+        mgetxy(DOORS_MAP, x+rx, y-ry) | \
+        mgetxy(DOORS_MAP, x+rx, y+ry) | \
+        mgetxy(DOORS_MAP, x-rx, y-ry) | \
+        mgetxy(DOORS_MAP, x-rx, y+ry)
 
 def draw_radar(ptr, pos):
     y = 0
@@ -926,7 +1017,7 @@ def new_alien(sx, sy):
         if a[2] == 0:
             a[0] = sx
             a[1] = sy
-            a[2] = 0x1f00 | alien_dir()
+            a[2] = {ALIEN_HEALTH<<8} | alien_dir()
             ALIENS_NR += 1
             SPAWN_FRAME = FRAMES
             return
@@ -981,8 +1072,9 @@ def alien_scan_cell(a, dir):
 
     if inside(x, y) == 0:
         return 1
-    if mget(LEVEL, x, y):
+    if mget(LEVEL, x, y) | mget(DOORS_MAP, x, y):
         return 1
+
     aa = scan_alien(c2x(x), c2y(y), a)
     if aa:
         return 1
@@ -999,21 +1091,21 @@ def seen(x, y, tx, ty):
         f = min(x, tx)
         t = max(x, tx)
         while f <= t:
-            if (inside(f, y) == 0) | mget(LEVEL, f, y):
+            if (inside(f, y) == 0) | mget(LEVEL, f, y) | mget(DOORS_MAP, f, y):
                 return 0
             f += 1
     else:
         f = min(y, ty)
         t = max(y, ty)
         while f <= t:
-            if (inside(x, f) == 0) | mget(LEVEL, x, f):
+            if (inside(x, f) == 0) | mget(LEVEL, x, f) | mget(DOORS_MAP, x, f):
                 return 0
             f += 1
     return 1
 
 def upd_alien(a):
     if bit(a[2], {ALIEN_DEAD}):
-        e = ((a[2]>>8)&0x1f) - 4
+        e = ((a[2]&{ALIEN_MASK})>>8) - 4
         a[2] &= ~{ALIEN_MASK}
         a[2] |= (e << 8)
         if e <= 0:
@@ -1081,7 +1173,7 @@ def upd_alien(a):
             x += DIRS[dir*2]
             y += DIRS[dir*2+1]
 
-    a[2] &= ~0x1ff
+    a[2] &= ~0x0ff
     a[2] |= dir | (ttl << 3)
     a[0] = x
     a[1] = y
@@ -1173,6 +1265,7 @@ def update():
         return
     kbd_proc()
     upd_laser()
+    upd_doors()
     upd_aliens()
     upd_hero()
 
