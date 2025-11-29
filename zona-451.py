@@ -451,6 +451,12 @@ def x2c(x):
 def y2c(y):
     return y >> {THS}
 
+def x2tl(x):
+    return (x >> {TWS}) + {TW//2}
+
+def y2tl(y):
+    return (y >> {THS}) + {TH//2}
+
 def c2int(cx, cy):
     return (cy<<4)|cx
 
@@ -684,10 +690,14 @@ def light_ray(x, y, tx, ty, r):
         dx = 1
     elif tx - x < 0:
         dx = -1
+
     if ty - y > 0:
         dy = 1
     elif ty - y < 0:
         dy = -1
+
+    if (x != tx) & (y != ty) & (abs(tx-x) != abs(ty-y)):
+        return 0;
 
     while (abs(tx - x) <= r) & (abs(ty - y) <= r):
         if inside(x, y) == 0:
@@ -1081,9 +1091,8 @@ def draw_aliens(ptr):
         a += 3
     return ptr
 
-ALIEN_DIR=0
-
-def alien_dir():
+ALIEN_DIR = 0
+def get_alien_dir():
     ALIEN_DIR = (ALIEN_DIR+1)&0x3
     return ALIEN_DIR
 
@@ -1109,7 +1118,7 @@ def new_alien(sx, sy):
         if a[2] == 0:
             a[0] = sx
             a[1] = sy
-            a[2] = {ALIEN_HEALTH<<8} | alien_dir()
+            a[2] = {ALIEN_HEALTH<<8} | get_alien_dir()
             ALIENS_NR += 1
             SPAWN_FRAME = FRAMES
             return
@@ -1149,7 +1158,7 @@ def scan_alien(x, y, aa):
         a += 3
     return 0
 
-def alien_scan_cell(a, dir):
+def alien_can_move(a, dir):
     x = (a[0]>>{TWS}) + DIRS[dir*2]
     y = (a[1]>>{THS}) + DIRS[dir*2+1]
 
@@ -1163,34 +1172,13 @@ def alien_scan_cell(a, dir):
         return 1
     return 0
 
-def seen(x, y, tx, ty):
-    x >>= {TWS}
-    tx >>= {TWS}
-    y >>= {THS}
-    ty >>= {THS}
-    if (x != tx) & (y != ty):
-        return 0
-    if y == ty:
-        f = min(x, tx)
-        t = max(x, tx)
-        while f <= t:
-            if (inside(f, y) == 0) | mget(LEVEL, f, y) | mget(DOORS_MAP, f, y):
-                return 0
-            f += 1
-    else:
-        f = min(y, ty)
-        t = max(y, ty)
-        while f <= t:
-            if (inside(x, f) == 0) | mget(LEVEL, x, f) | mget(DOORS_MAP, x, f):
-                return 0
-            f += 1
-    return 1
+def alien_sight(x, y, tx, ty):
+    return light_ray(x2c(x), y2c(y), x2c(tx), y2c(ty), {W})
 
 def upd_alien(a):
     if bit(a[2], {ALIEN_DEAD}):
-        e = ((a[2]&{ALIEN_MASK})>>8) - 4
-        a[2] &= ~{ALIEN_MASK}
-        a[2] |= (e << 8)
+        e = bit_gethi(a[2], {ALIEN_MASK}) - 4
+        a[2] = bit_sethi(a[2], {ALIEN_MASK}, e)
         if e <= 0:
             a[2] = 0
             ALIENS_NR -= 1
@@ -1201,16 +1189,16 @@ def upd_alien(a):
     x = a[0]
     y = a[1]
 
-    alignedx = (((x - ({TW}>>1)) & {TWM}) == 0)
-    alignedy = (((y - ({TH}>>1)) & {THM}) == 0)
-    aligned = alignedx & alignedy
+    aligned_x = ((x - {TW//2}) & {TWM}) == 0
+    aligned_y = ((y - {TH//2}) & {THM}) == 0
+    aligned = aligned_x & aligned_y
 
     ttl = (a[2]&0xf8)>>3
 
     if (ttl > 0) & aligned:
         ttl = ttl - 1
 
-    if (HERO_DEAD == 0) & seen(x, y, PX, PY):
+    if (HERO_DEAD == 0) & alien_sight(x, y, PX, PY):
         a[2] |= {ALIEN_SIGHT}
     else:
         a[2] &= ~{ALIEN_SIGHT}
@@ -1229,24 +1217,21 @@ def upd_alien(a):
         ttl = 8
 
     t = 4
-
-    while (aligned) & (t > 0) & (alien_scan_cell(a, dir)):
+    while (aligned) & (t > 0) & (alien_can_move(a, dir)):
         dir += 1
         dir &= 0x3
         t -= 1
 
-    if (alien_dir() & 1):
-        dl = (dir + 1)&0x3
-        dr = (dir + 3)&0x3
-    else:
-        dr = (dir + 1)&0x3
-        dl = (dir + 3)&0x3
+    dl = (dir + 1)&0x3
+    dr = (dir + 3)&0x3
+    if (get_alien_dir() & 1):
+        {mswap("dl", "dr")}
 
-    if (ttl == 0) & aligned & not_bit(a[2], {ALIEN_SIGHT}) & (t > 0):
-        if (alien_scan_cell(a, dl) == 0):
+    if (ttl == 0) & aligned & (t > 0):
+        if (alien_can_move(a, dl) == 0):
             dir = dl
             ttl = 4
-        elif (alien_scan_cell(a, dr) == 0):
+        elif (alien_can_move(a, dr) == 0):
             dir = dr
             ttl = 4
 
@@ -1260,6 +1245,7 @@ def upd_alien(a):
     a[2] |= dir | (ttl << 3)
     a[0] = x
     a[1] = y
+
     if (HERO_DEAD == 0) & (alien_coll(a)==1):
         HERO_DEAD = 1
         kbd_clear()
