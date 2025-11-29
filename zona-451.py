@@ -549,6 +549,8 @@ def draw_laser(ptr):
         ey &= ~{THM}
         ey += {TH}>>1
         ex += 1
+    if dist(ex, ey, PX, PY, {VIEW_R*2}) == 0:
+        ptr = mrect(ptr, ex>>{TWS}, ey>>{THS}, 0, 0)
 
     x = LASER_X
     y = LASER_Y
