@@ -597,6 +597,8 @@ def upd_laser():
     if INP_STATE[{KEY_A}] == 0:
         if (INP_X == 0) & (INP_Y == 0):
             LASER_HEAT = max(0, LASER_HEAT - {LASER_CHARGE})
+        else:
+            LASER_HEAT = max(0, LASER_HEAT - {LASER_CHARGE//5})
         LASER_X = -1
         return 0
 
@@ -691,7 +693,11 @@ def alien_light_cell(a):
         light_ray(px+1, py, tx, ty, {VIEW_R}) | \
         light_ray(px-1, py, tx, ty, {VIEW_R}) | \
         light_ray(px, py-1, tx, ty, {VIEW_R}) | \
-        light_ray(px, py+1, tx, ty, {VIEW_R})
+        light_ray(px, py+1, tx, ty, {VIEW_R}) | \
+        light_ray(px+1, py+1, tx, ty, {VIEW_R}) | \
+        light_ray(px-1, py+1, tx, ty, {VIEW_R}) | \
+        light_ray(px-1, py-1, tx, ty, {VIEW_R}) | \
+        light_ray(px+1, py-1, tx, ty, {VIEW_R})
 
 def alien_visible(a):
     return bit(a[2], {ALIEN_HIT}) | alien_light_cell(a)
@@ -1036,11 +1042,12 @@ def draw_radar(ptr, pos):
         x = 0
         while x < {W}:
             if (pos > y):
+                far = ((abs(cx-x)>{VIEW_R})|(abs(cy-y)>{VIEW_R}))
                 if mget(RADAR_MAP, x, y):
                     ptr = draw_circle(ptr, c2x(x), c2y(y), 4, rgb(b,0,0))
-                elif mget(PADS_MAP, x, y) & ((abs(cx-x)>{VIEW_R})|(abs(cy-y)>{VIEW_R})):
+                elif mget(PADS_MAP, x, y) & far:
                     ptr = draw_circle(ptr, c2x(x), c2y(y), 4, rgb(b,b,0))
-                elif (x == EXIT_CX) & (y == EXIT_CY):
+                elif (x == EXIT_CX) & (y == EXIT_CY) & far:
                     ptr = draw_circle(ptr, c2x(x), c2y(y), 4, rgb(0,b,b))
             x += 1
         y += 1
