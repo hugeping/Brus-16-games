@@ -5,6 +5,7 @@ def col(r, g, b):
 
 VIEW_SIZE = 7
 VIEW_R = (VIEW_SIZE//2)
+#MRECT = [0]*(VIEW_SIZE*VIEW_SIZE)
 
 MAX_ITEMS = 24
 LEVEL_SIZE = 16 + MAX_ITEMS
@@ -169,6 +170,23 @@ DOOR_HEALTH = 0x16
 MAP = (
 '''
 ###############
+#@   |   |   *#
+####### #######
+####### #######
+####### #######
+####### #######
+######   ######
+#$  |  E  |  *#
+######   ######
+####### #######
+####### #######
+####### #######
+####### #######
+#*   |   |   *#
+###############''',
+
+'''
+###############
 #@           $#
 # ###=#####=###
 # ##$* ### *$##
@@ -190,11 +208,11 @@ MAP = (
 # ########### #
 # ###*   *### #
 # ##### ##### #
-# ##### ##### #
+# #####=##### #
 # ####   #### #
 #      E      #
 # ####   #### #
-# ##### ##### #
+# #####=##### #
 # ##### ##### #
 # ##### ##### #
 # ##### ##### #
@@ -317,6 +335,7 @@ DOORS_NR = 0
 
 SPAWNS = [0, 0, 0, 0, 0, 0, 0, 0]
 LEVEL = 0
+NEXT_LEVEL = 0
 HERO_DIR = 0
 
 PX = 0
@@ -433,6 +452,7 @@ def lookup_door(cx, cy):
     return 0
 
 def loadlev():
+    NEXT_LEVEL = LEVEL
     SCROLL_MODE = 480
     RADAR_MODE = 0
     ALIEN_DIR = 0
@@ -977,6 +997,8 @@ def draw_radar(ptr, pos):
                     ptr = draw_circle(ptr, c2x(x), c2y(y), 4, rgb(b,0,0))
                 elif mget(PADS_MAP, x, y) & ((abs(cx-x)>{VIEW_R})|(abs(cy-y)>{VIEW_R})):
                     ptr = draw_circle(ptr, c2x(x), c2y(y), 4, rgb(b,b,0))
+                elif (x == EXIT_CX) & (y == EXIT_CY):
+                    ptr = draw_circle(ptr, c2x(x), c2y(y), 4, rgb(0,b,b))
             x += 1
         y += 1
     return ptr
@@ -1208,7 +1230,8 @@ def upd_hero():
         HERO_DEAD += 1
         if INP_A & (HERO_DEAD>100):
             INP_A = 0
-            loadlev()
+            SCROLL_MODE = - 480
+#            loadlev()
         return
 
     if RADAR_MODE > 0:
@@ -1240,8 +1263,8 @@ def upd_hero():
         PADS_NR -= 1
         LASER_HEAT = 0
     if (PADS_NR == 0) & ((PX>>{TWS})==EXIT_CX) & ((PY>>{THS})==EXIT_CY):
-        LEVEL += {LEVEL_SIZE}
-        loadlev()
+        NEXT_LEVEL = LEVEL + {LEVEL_SIZE}
+        SCROLL_MODE = -480
         return
     if mgetxy(SPAWN_MAP, PX, PY) & (mgetxy(SPAWN_MAP, ox, oy) != 1) & (SPAWNS_NR > 1):
         i = 0
@@ -1262,6 +1285,13 @@ def upd_hero():
 def update():
     if SCROLL_MODE > 0:
         SCROLL_MODE -= 16
+        return
+    elif SCROLL_MODE < 0:
+        SCROLL_MODE += 16
+        if SCROLL_MODE >= 0:
+            SCROLL_MODE = 480
+            LEVEL = NEXT_LEVEL
+            loadlev()
         return
     kbd_proc()
     upd_laser()
@@ -1297,8 +1327,12 @@ def draw_status(ptr):
         l = 480
     else:
         l = ((PADS_MAX - PADS_NR)*480) >> PADS_S
+    if l >= 480:
+        col = rate_color(2, {col(0, 32, 255)}, {col(0, 212, 255)})
+    else:
+        col = rgb(0, 32, min(128+(l>>2), 255))
     ptr = draw_rect(ptr, 0, 0,
-        6, l, rgb(0, 32, min(128+(l>>2), 255)))
+        6, l, col)
     return ptr
 
 RADAR_MODE = 0
@@ -1319,7 +1353,10 @@ def draw():
         ptr = draw_rect(ptr, 0, 480 - RADAR_MODE, 15*32, 1, rate_color(3, rgb(255,0,0), rgb(128, 128, 128)))
         ptr = draw_radar(ptr, 480 - RADAR_MODE)
 #    screen_off(-PX+320, -PY+240)
-    screen_off((640-{W}*{TW})>>1, SCROLL_MODE)
+    if SCROLL_MODE < 0:
+        screen_off((640-{W}*{TW})>>1, -SCROLL_MODE-480)
+    else:
+        screen_off((640-{W}*{TW})>>1, SCROLL_MODE)
     ptr = draw_status(ptr)
 
 def main():
