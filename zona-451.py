@@ -19,6 +19,7 @@ HERO_LASER_DIR = [10, -3, 4, -10, -10, -4, -4, 6]
 
 LASER_HEAT_MAX = 480
 LASER_COST = 16
+RADAR_COST = 10
 LASER_CHARGE = 8
 
 # center
@@ -145,8 +146,11 @@ SPAWN_MAP = [0]*H
 RADAR_MAP = [0]*H
 
 ITEM_PAD   = 0x0100
+ITEM_ALIEN = 0x0200
+ITEM_HDOOR = 0x0300
+ITEM_VDOOR = 0x0400
 ITEM_SPAWN = 0xff00
-ITEM_MASK = 0xff00
+ITEM_MASK  = 0xff00
 
 ALIEN_DEAD =  0x2000
 ALIEN_HIT =   0x4000
@@ -154,6 +158,23 @@ ALIEN_SIGHT = 0x8000
 ALIEN_MASK =  0x1F00
 
 MAP = (
+'''
+###############
+#@           $#
+# ###=#####=###
+# ##$* ### *$##
+# #############
+# #############
+# ####   ######
+#      E      #
+# ####   #### #
+# ########### #
+# ########### #
+# ########### #
+#     $#$     #
+#*###########*#
+###############''',
+
 '''
 ###############
 #      @      #
@@ -230,6 +251,12 @@ def map2bit(t):
                 items.append((x, y, ITEM_PAD))
             elif i == '&':
                 items.append((x, y, ITEM_SPAWN))
+            elif i == '$':
+                items.append((x, y, ITEM_ALIEN))
+            elif i == '=':
+                items.append((x, y, ITEM_HDOOR))
+            elif i == '|':
+                items.append((x, y, ITEM_VDOOR))
             x += 1
         r.append(c>>1)
         y += 1
@@ -389,6 +416,7 @@ def c2y(c):
 
 def loadlev():
     SCROLL_MODE = 480
+    RADAR_MODE = 0
     ALIEN_DIR = 0
     HERO_DEAD = 0
 
@@ -432,6 +460,8 @@ def loadlev():
                 SPAWNS[SPAWNS_NR] = c2int(cx, cy)
                 mset(SPAWN_MAP, cx, cy, 1)
                 SPAWNS_NR += 1
+            elif it == {ITEM_ALIEN}:
+                new_alien(c2x(cx), c2y(cy))
         cb += 1
     PADS_S = 0
     PADS_MAX = PADS_NR
@@ -789,9 +819,11 @@ INP_STATE = {KEY_STATE}
 INP_Y = 0
 INP_X = 0
 INP_A = 0
+INP_B = 0
 
 def kbd_clear():
     INP_A = 0
+    INP_B = 0
 
 def kbd_proc():
     i = 0
@@ -808,6 +840,8 @@ def kbd_proc():
                 INP_X = 1*c
             elif i == {KEY_A}:
                 INP_A = c
+            elif i == {KEY_B}:
+                INP_B = c
             INP_STATE[i] = c
         i += 1
 
@@ -838,14 +872,20 @@ def map_coll(x, y, rx, ry):
         mgetxy(LEVEL, x-rx, y-ry) | \
         mgetxy(LEVEL, x-rx, y+ry)
 
-def draw_radar(ptr):
+def draw_radar(ptr, pos):
     y = 0
     b = 255 - (FRAMES&(0xffff>>(16-{RADAR_RATE})))*5
+    pos >>= {THS}
+    cx = PX>>{TWS}
+    cy = PY>>{THS}
     while y < {H}:
         x = 0
         while x < {W}:
-            if mget(RADAR_MAP, x, y):
-                ptr = draw_circle(ptr, c2x(x), c2y(y), 4, rgb(b,0,0))
+            if (pos > y):
+                if mget(RADAR_MAP, x, y):
+                    ptr = draw_circle(ptr, c2x(x), c2y(y), 4, rgb(b,0,0))
+                elif mget(PADS_MAP, x, y) & ((abs(cx-x)>{VIEW_R})|(abs(cy-y)>{VIEW_R})):
+                    ptr = draw_circle(ptr, c2x(x), c2y(y), 4, rgb(b,b,0))
             x += 1
         y += 1
     return ptr
@@ -864,7 +904,7 @@ def alien_dir():
     ALIEN_DIR = (ALIEN_DIR+1)&0x3
     return ALIEN_DIR
 
-def new_alien():
+def spawn_alien():
     if SPAWNS_NR == 0:
         return
     if ltu(abs(FRAMES-SPAWN_FRAME), {SPAWN_DELAY}):
@@ -877,6 +917,9 @@ def new_alien():
     SPAWN_ID += 1
     if SPAWN_ID >= SPAWNS_NR:
         SPAWN_ID = 0
+    new_alien(sx, sy)
+
+def new_alien(sx, sy):
     a = ALIENS
     ae = ALIENS + {ALIENS_SIZE}
     while a < ae:
@@ -1046,16 +1089,16 @@ def upd_alien(a):
         HERO_DEAD = 1
         kbd_clear()
 
-    if trigger({RADAR_RATE}) & (alien_visible(a) == 0):
+    if (RADAR_MODE == 480) & (alien_visible(a) == 0):
         msetxy(RADAR_MAP, x, y, 1)
     return
 
 def upd_aliens():
-    if trigger({RADAR_RATE}):
+    if RADAR_MODE == 480:
         bzero(RADAR_MAP, {H})
 
     if ALIENS_NR < SPAWNS_NR:
-        new_alien()
+        spawn_alien()
 
     a = ALIENS
     ae = ALIENS + {ALIENS_SIZE}
@@ -1075,6 +1118,18 @@ def upd_hero():
             INP_A = 0
             loadlev()
         return
+
+    if RADAR_MODE > 0:
+        LASER_HEAT = min(LASER_HEAT + {RADAR_COST}, {LASER_HEAT_MAX})
+        if LASER_HEAT >= {LASER_HEAT_MAX}:
+            RADAR_MODE = 0
+        else:
+            RADAR_MODE -= 8
+
+    if INP_B & (RADAR_MODE == 0):
+        INP_B = 0
+        RADAR_MODE = 480
+
     ox = PX
     oy = PY
     if map_coll(PX+INP_X, PY, 4, 10) == 0:
@@ -1153,6 +1208,8 @@ def draw_status(ptr):
         6, l, rgb(0, 32, min(128+(l>>2), 255)))
     return ptr
 
+RADAR_MODE = 0
+
 def draw():
     ptr = {RECT_MEM}
     bzero(ptr, {RECT_SIZE}*{RECT_NUM})
@@ -1164,8 +1221,10 @@ def draw():
     ptr = draw_hero(ptr, PX, PY)
     ptr = draw_laser(ptr)
     ptr = draw_aliens(ptr)
-    if rate({RADAR_RATE}):
-        ptr = draw_radar(ptr)
+
+    if (RADAR_MODE > 0):
+        ptr = draw_rect(ptr, 0, 480 - RADAR_MODE, 15*32, 1, rate_color(3, rgb(255,0,0), rgb(128, 128, 128)))
+        ptr = draw_radar(ptr, 480 - RADAR_MODE)
 #    screen_off(-PX+320, -PY+240)
     screen_off((640-{W}*{TW})>>1, SCROLL_MODE)
     ptr = draw_status(ptr)
