@@ -3,6 +3,12 @@ from brus16 import *
 def col(r, g, b):
     return ((r>>3) << 11) | ((g>>2) << 5) | (b>>3)
 
+def mswap(a, b):
+    return f'''{a} ^= {b}; {b} ^= {a}; {a} ^= {b}'''
+
+def mbool(a):
+    return a != 0
+
 VIEW_SIZE = 7
 VIEW_R = (VIEW_SIZE//2)
 #MRECT = [0]*(VIEW_SIZE*VIEW_SIZE)
@@ -28,7 +34,7 @@ HERO_C = [4, 6]
 
 RADAR_RATE = 5
 
-BGCOL1 = col(90, 0, 120)
+BGCOL1 = col(50, 0, 80)
 BGCOL2 = col(100, 0, 130)
 FGCOL = col(200, 0, 255)
 DOTS_RATE = 6
@@ -386,6 +392,17 @@ def bit(a, v):
 def not_bit(a, v):
     return (a&v) == 0
 
+def bit_sethi(a, mask, v):
+    a &= ~mask
+    a |= v<<8
+    return a
+
+def bit_gethi(a, mask):
+    return (a & mask)>>8
+
+def to_bool(a):
+    return a != 0
+
 seed = 7
 
 def rnd():
@@ -427,6 +444,12 @@ def mget(m, cx, cy):
 
 def mgetxy(m, x, y):
     return mget(m, x>>{TWS}, y>>{THS})
+
+def x2c(x):
+    return x >> {TWS}
+
+def y2c(y):
+    return y >> {THS}
 
 def c2int(cx, cy):
     return (cy<<4)|cx
@@ -533,6 +556,9 @@ def draw_circle(ptr, cx, cy, r, col):
     ptr[5] = col
     return ptr + {RECT_SIZE}
 
+def inside_view(x, y):
+    return hit1(x2c(PX) - {VIEW_R}, y2c(PY) - {VIEW_R}, {VIEW_SIZE}, {VIEW_SIZE}, x2c(x), y2c(y))
+
 def draw_laser(ptr):
     if LASER_X < 0:
         return ptr
@@ -542,27 +568,23 @@ def draw_laser(ptr):
 
     if LASER_X2 != LASER_X:
         ex &= ~{TWM}
-        ex += {TW}>>1
+        ex += {TW//2}
         ey += 1
 
     if LASER_Y2 != LASER_Y:
         ey &= ~{THM}
-        ey += {TH}>>1
+        ey += {TH//2}
         ex += 1
-    if dist(ex, ey, PX, PY, {VIEW_R*2}) == 0:
-        ptr = mrect(ptr, ex>>{TWS}, ey>>{THS}, 0, 0)
+
+    if inside_view(ex, ey) == 0:
+        ptr = draw_mrect(ptr, x2c(ex), y2c(ey), 0, 0)
 
     x = LASER_X
     y = LASER_Y
 
     if (ex < x) | (ey < y):
-        x ^= ex
-        ex ^= x
-        x ^= ex
-
-        y ^= ey
-        ey ^= y
-        y ^= ey
+        {mswap("x", "ex")}
+        {mswap("y", "ey")}
 
     color = rate_color({LASERCOL_RATE}, {LASERCOL1}, {LASERCOL2})
 
@@ -572,12 +594,11 @@ def upd_doors():
     i = 0
     while i < DOORS_NR:
         if bit(DOORS[i], {DOOR_DEAD}):
-            e = ((DOORS[i]&{DOOR_MASK})>>8) + 1
+            e = bit_gethi(DOORS[i], {DOOR_MASK}) + 1
             if e > 4:
                 mclr(DOORS_MAP, int2cx(DOORS[i]), int2cy(DOORS[i]))
             else:
-                DOORS[i] &= ~{DOOR_MASK}
-                DOORS[i] |= (e << 8)
+                DOORS[i] = bit_sethi(DOORS[i], {DOOR_MASK}, e)
         i += 1
 
 def upd_laser():
@@ -611,8 +632,8 @@ def upd_laser():
 
     x = PX + HERO_LDIRS[HERO_DIR*2]
     y = PY + HERO_LDIRS[HERO_DIR*2+1]
-    dx = DIRS[HERO_DIR*2]*({TW}>>1)
-    dy = DIRS[HERO_DIR*2+1]*({TH}>>1)
+    dx = DIRS[HERO_DIR*2]*({TW//2})
+    dy = DIRS[HERO_DIR*2+1]*({TH//2})
 
     ex = x
     ey = y
@@ -624,31 +645,30 @@ def upd_laser():
         ey += dy
         a = scan_alien(ex, ey, 0)
         if a != 0:
-            e = (a[2] & {ALIEN_MASK})>>8
+            e = bit_gethi(a[2], {ALIEN_MASK})
             a[2] |= {ALIEN_HIT}
             if (e > 0) & not_bit(a[2], {ALIEN_DEAD}):
                 e -= 1
-                a[2] &= ~{ALIEN_MASK}
-                a[2] |= (e << 8)
+                a[2] = bit_sethi(a[2], {ALIEN_MASK}, e)
             elif not_bit(a[2], {ALIEN_DEAD}):
-                a[2] = {ALIEN_DEAD} | {DOOR_HEALTH<<8}
+                a[2] = {ALIEN_DEAD | (DOOR_HEALTH<<8)}
             break
 
     if mgetxy(DOORS_MAP, ex, ey):
-        door = lookup_door(ex>>{TWS}, ey>>{THS})
-        e = ((door[0]&{DOOR_MASK})>>8) + 2
+        door = lookup_door(x2c(ex), y2c(ey))
+        e = bit_gethi(door[0], {DOOR_MASK}) + 2
         door[0] |= {DOOR_HIT}
         if (e >= 0x1f) & not_bit(door[0], {DOOR_DEAD}):
-            door[0] &= ~{DOOR_MASK}
+            door[0] = bit_sethi(door[0], {DOOR_MASK}, 0)
             door[0] |= {DOOR_DEAD}
         elif not_bit(door[0], {DOOR_DEAD}):
-            door[0] &= ~{DOOR_MASK}
-            door[0] |= (e << 8)
+            door[0] = bit_sethi(door[0], {DOOR_MASK}, e)
 
     ex = max(0, ex)
     ey = max(0, ey)
-    ex = min(ex, {W}*{TW}-1)
-    ey = min(ey, {H}*{TH}-1)
+    ex = min(ex, {W*TW-1})
+    ey = min(ey, {H*TH-1})
+
     LASER_X = x
     LASER_Y = y
     LASER_X2 = ex
@@ -683,7 +703,7 @@ def light_ray(x, y, tx, ty, r):
     return 0
 
 def alien_light_cell(a):
-    if dist(a[0], a[1], PX, PY, {TW}*({VIEW_R}+1)) == 0:
+    if inside_view(a[0], a[1]) == 0:
         return 0
 
     px = PX >> {TWS}
@@ -691,7 +711,7 @@ def alien_light_cell(a):
     tx = a[0] >> {TWS}
     ty = a[1] >> {THS}
 
-    return light_ray(px, py, tx, ty, {VIEW_R})# | \
+    return light_ray(px, py, tx, ty, {VIEW_R}) | \
         light_ray(px+1, py, tx, ty, {VIEW_R}) | \
         light_ray(px-1, py, tx, ty, {VIEW_R}) | \
         light_ray(px, py-1, tx, ty, {VIEW_R}) | \
@@ -703,8 +723,6 @@ def alien_light_cell(a):
 
 def alien_visible(a):
     return bit(a[2], {ALIEN_HIT}) | alien_light_cell(a)
-#   return bit(a[2], {ALIEN_HIT}|{ALIEN_SIGHT}) | alien_light_cell(a)
-    # (dist(a[0], a[1], PX, PY, {TW}*({VIEW_R}+1)) == 1)
 
 def draw_alien(ptr, a):
     x = a[0]
@@ -791,7 +809,7 @@ def draw_hero(ptr, cx, cy):
 def rate(r):
     return (FRAMES >> r)&1
 
-def trigger(r):
+def rate_trigger(r):
     return (((FRAMES-1) >> r)&1) != ((FRAMES >> r)&1)
 
 def rate_color(r, c1, c2):
@@ -810,29 +828,33 @@ def item_rect(ptr, x, y, w, h):
 
     return 1
 
-def mrect(ptr, cx, cy, xoff, yoff):
+def atexit(cx, cy):
+    return (cx == EXIT_CX) & (cy == EXIT_CY)
+
+def atexitxy(x, y):
+    return atexit(x2c(x), y2c(y))
+
+def draw_mrect(ptr, cx, cy, xoff, yoff):
     x = 0
     y = 0
     w = {TW}
     h = {TH}
 
-    if inside(cx, cy) == 0:
-        return ptr
-    if mget(LEVEL, cx, cy):
+#    if inside(cx, cy) == 0:
+#        return ptr
+
+    if mget(LEVEL, cx, cy) | (inside(cx, cy) == 0):
         ptr[5] = {FGCOL}
-    elif (cx == EXIT_CX) & (cy == EXIT_CY):
+    elif atexit(cx, cy):
         if PADS_NR <= 0:
             ptr[5] = rate_color({EXITCOL_RATE}, {EXITCOL3}, {EXITCOL4})
         else:
             ptr[5] = rate_color({EXITCOL_RATE}, {EXITCOL1}, {EXITCOL2})
     elif mget(PADS_MAP, cx, cy):
-        ptr[5] = rate_color({PADCOL_RATE}, { PADCOL1 }, { PADCOL2 })
-        x = {TW}>>2
-        y = {TH}>>2
-        w = {TW}>>1
-        h = {TH}>>1
+        ptr[5] = rate_color({PADCOL_RATE}, {PADCOL1}, {PADCOL2})
+        x = {TW//4}; y = {TH//4}; w = {TW//2}; h = {TH//2}
     elif mget(SPAWN_MAP, cx, cy):
-        ptr[5] = rate_color({SPAWNCOL_RATE}, { SPAWNCOL1 }, { SPAWNCOL2 })
+        ptr[5] = rate_color({SPAWNCOL_RATE}, {SPAWNCOL1}, {SPAWNCOL2})
     elif mget(DOORS_MAP, cx, cy):
         door = lookup_door(cx, cy)
         if bit(door[0], {DOOR_DEAD}):
@@ -842,15 +864,9 @@ def mrect(ptr, cx, cy, xoff, yoff):
         else:
             ptr[5] = { DOORCOL }
         if mget(LEVEL, cx + 1, cy) | mget(LEVEL, cx - 1, cy):
-            x = 1
-            y = {TH//2-8}
-            w = {TW-2}
-            h = 16
+            x = 1; y = {TH//2-8}; w = {TW-2}; h = 16
         else:
-            x = {TW//2-8}
-            y = 1
-            w = 16
-            h = {TH-2}
+            x = {TW//2-8}; y = 1; w = 16; h = {TH-2}
 
         if bit(door[0], {DOOR_DEAD}):
             x += 7 - (rnd() & 0xf)
@@ -924,7 +940,7 @@ def draw_hwall(ptr, sx, sy, ex, xoff, yoff):
     while sx <= ex:
         l = hwall_scan(sx, sy, ex)
         optr = ptr
-        ptr = mrect(ptr, sx, sy, xoff, yoff)
+        ptr = draw_mrect(ptr, sx, sy, xoff, yoff)
         if l > 0:
             sx += l
             optr[3] = l*{TW}
@@ -936,7 +952,7 @@ def draw_vwall(ptr, sx, sy, ey, xoff, yoff):
     while sy <= ey:
         l = vwall_scan(sx, sy, ey)
         optr = ptr
-        ptr = mrect(ptr, sx, sy, xoff, yoff)
+        ptr = draw_mrect(ptr, sx, sy, xoff, yoff)
         if l > 0:
             sy += l
             optr[4] = l*{TH}
@@ -958,10 +974,10 @@ def draw_map(ptr, x, y):
     ptr = draw_vwall(ptr, x - {VIEW_R}, y - r, y + r, xoff|0x100, 0)
     ptr = draw_vwall(ptr, x + {VIEW_R}, y - r, y + r, xoff|0x200, 0)
 
-    ptr = mrect(ptr, x-{VIEW_R}, y-{VIEW_R}, xoff|0x100, yoff|0x100)
-    ptr = mrect(ptr, x-{VIEW_R}, y+{VIEW_R}, xoff|0x100, yoff|0x200)
-    ptr = mrect(ptr, x+{VIEW_R}, y-{VIEW_R}, xoff|0x200, yoff|0x100)
-    ptr = mrect(ptr, x+{VIEW_R}, y+{VIEW_R}, xoff|0x200, yoff|0x200)
+    ptr = draw_mrect(ptr, x-{VIEW_R}, y-{VIEW_R}, xoff|0x100, yoff|0x100)
+    ptr = draw_mrect(ptr, x-{VIEW_R}, y+{VIEW_R}, xoff|0x100, yoff|0x200)
+    ptr = draw_mrect(ptr, x+{VIEW_R}, y-{VIEW_R}, xoff|0x200, yoff|0x100)
+    ptr = draw_mrect(ptr, x+{VIEW_R}, y+{VIEW_R}, xoff|0x200, yoff|0x200)
 
     sy = y - r
     while sy <= y + r:
@@ -970,6 +986,7 @@ def draw_map(ptr, x, y):
     return ptr
 
 INP_STATE = {KEY_STATE}
+
 INP_Y = 0
 INP_X = 0
 INP_A = 0
@@ -1049,7 +1066,7 @@ def draw_radar(ptr, pos):
                     ptr = draw_circle(ptr, c2x(x), c2y(y), 4, rgb(b,0,0))
                 elif mget(PADS_MAP, x, y) & far:
                     ptr = draw_circle(ptr, c2x(x), c2y(y), 4, rgb(b,b,0))
-                elif (x == EXIT_CX) & (y == EXIT_CY) & far:
+                elif atexit(x, y) & far:
                     ptr = draw_circle(ptr, c2x(x), c2y(y), 4, rgb(0,b,b))
             x += 1
         y += 1
@@ -1065,6 +1082,7 @@ def draw_aliens(ptr):
     return ptr
 
 ALIEN_DIR=0
+
 def alien_dir():
     ALIEN_DIR = (ALIEN_DIR+1)&0x3
     return ALIEN_DIR
@@ -1314,7 +1332,7 @@ def upd_hero():
     if mclrxy(PADS_MAP, PX, PY):
         PADS_NR -= 1
         LASER_HEAT = 0
-    if (PADS_NR == 0) & ((PX>>{TWS})==EXIT_CX) & ((PY>>{THS})==EXIT_CY):
+    if (PADS_NR == 0) & atexitxy(PX, PY):
         NEXT_LEVEL = LEVEL + {LEVEL_SIZE}
         SCROLL_MODE = -480
         return
@@ -1362,7 +1380,7 @@ def setup():
         i += 1
 
 def screen_off(ox, oy):
-    ptr = {RECT_MEM}
+    ptr = {RECT_MEM} + {RECT_SIZE} # skip bg
     eptr = {RECT_MEM} + {RECT_NUM}*{RECT_SIZE}
     while ptr < eptr:
         if ptr[0]:
@@ -1393,7 +1411,7 @@ def draw():
     ptr = {RECT_MEM}
     bzero(ptr, {RECT_SIZE}*{RECT_NUM})
 
-    ptr = draw_rect(ptr, 0, 0, {W*TW}, {H*TH}, {BGCOL1})
+    ptr = draw_rect(ptr, 0, 0, 640, 480, {BGCOL1})
     ptr = draw_rect(ptr, PX-{TW}*{VIEW_R}, PY-{TH}*{VIEW_R}, {VIEW_SIZE-1}*32, {VIEW_SIZE-1}*32, {BGCOL2})
 
     ptr = draw_map(ptr, PX, PY)
