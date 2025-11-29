@@ -160,7 +160,7 @@ ALIEN_DEAD =  0x2000
 ALIEN_HIT =   0x4000
 ALIEN_SIGHT = 0x8000
 ALIEN_MASK =  0x1F00
-ALIEN_HEALTH = 0x16
+ALIEN_HEALTH = 0x13
 
 DOOR_HIT    = 0x8000
 DOOR_DEAD   = 0x4000
@@ -652,8 +652,51 @@ def upd_laser():
 
 LEGS = [1, 3, 5, 7, 5, 3, 2, 1]
 
+def light_ray(x, y, tx, ty, r):
+    dx = 0
+    dy = 0
+
+    if tx - x > 0:
+        dx = 1
+    elif tx - x < 0:
+        dx = -1
+    if ty - y > 0:
+        dy = 1
+    elif ty - y < 0:
+        dy = -1
+
+    while (abs(tx - x) <= r) & (abs(ty - y) <= r):
+        if inside(x, y) == 0:
+            return 0
+        if mget(LEVEL, x, y):
+            return 0
+        if mget(DOORS_MAP, x, y):
+            return 0
+        x += dx
+        y += dy
+        if (x == tx) & (y == ty):
+            return 1
+    return 0
+
+def alien_light_cell(a):
+    if dist(a[0], a[1], PX, PY, {TW}*({VIEW_R}+1)) == 0:
+        return 0
+
+    px = PX >> {TWS}
+    py = PY >> {THS}
+    tx = a[0] >> {TWS}
+    ty = a[1] >> {THS}
+
+    return light_ray(px, py, tx, ty, {VIEW_R})# | \
+        light_ray(px+1, py, tx, ty, {VIEW_R}) | \
+        light_ray(px-1, py, tx, ty, {VIEW_R}) | \
+        light_ray(px, py-1, tx, ty, {VIEW_R}) | \
+        light_ray(px, py+1, tx, ty, {VIEW_R})
+
 def alien_visible(a):
-    return bit(a[2], {ALIEN_HIT}|{ALIEN_SIGHT}) | (dist(a[0], a[1], PX, PY, {TW}*({VIEW_R}+1)) == 1)
+    return bit(a[2], {ALIEN_HIT}) | alien_light_cell(a)
+#   return bit(a[2], {ALIEN_HIT}|{ALIEN_SIGHT}) | alien_light_cell(a)
+    # (dist(a[0], a[1], PX, PY, {TW}*({VIEW_R}+1)) == 1)
 
 def draw_alien(ptr, a):
     x = a[0]
