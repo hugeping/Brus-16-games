@@ -1115,14 +1115,6 @@ def new_alien(sx, sy):
             return
         a += 3
 
-def dist(x, y, x2, y2, r):
-    x >>= {TWS}
-    y >>= {THS}
-    x2 >>= {TWS}
-    y2 >>= {THS}
-    r >>= {TWS}
-    return ((x2-x)*(x2-x) + (y2-y)*(y2-y)) <= r*r
-
 def hit1(x, y, w, h, tx, ty):
     return (tx >= x) & (tx < x + w) & \
         (ty >= y) & (ty < y + h)
@@ -1131,9 +1123,9 @@ def hit2(x1, y1, w1, h1, x2, y2, w2, h2):
     return (x1 < (x2+w2)) & ((x1 + w1)>x2) & \
         (y1 < (y2+h2)) & ((y1+h1)>y2)
 
-def alien_hit(a):
-    x1 = PX-HERO_C[0]
-    y1 = PY-HERO_C[1]
+def alien_coll(a):
+    x1 = PX - HERO_C[0]
+    y1 = PY - HERO_C[1]
     w1 = HERO_C[0]*2
     h1 = HERO_C[1]*2
 
@@ -1153,7 +1145,6 @@ def scan_alien(x, y, aa):
     h = ALIEN[4]
     while a < ae:
         if (a[2]!=0) & (aa != a) & hit1(a[0]-(w>>1), a[1]-(h>>1), w, h, x, y):
-#        dist(x, y, a[0], a[1], ALIEN[3]):
             return a
         a += 3
     return 0
@@ -1269,7 +1260,7 @@ def upd_alien(a):
     a[2] |= dir | (ttl << 3)
     a[0] = x
     a[1] = y
-    if (HERO_DEAD == 0) & (alien_hit(a)==1): #dist(x, y, PX, PY, ALIEN[3]>>1):
+    if (HERO_DEAD == 0) & (alien_coll(a)==1):
         HERO_DEAD = 1
         kbd_clear()
 
