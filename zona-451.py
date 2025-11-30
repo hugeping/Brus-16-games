@@ -1393,9 +1393,8 @@ RADAR_MODE = 0
 
 def zoom(start, end, factor):
     while start < end:
-        if start[{RECT_ABS}] == 0:
-            start[{RECT_X}] = shra(start[{RECT_X}] * factor, {ZOOM_BITS})
-            start[{RECT_Y}] = shra(start[{RECT_Y}] * factor, {ZOOM_BITS})
+        start[{RECT_X}] = shra(start[{RECT_X}] * factor, {ZOOM_BITS})
+        start[{RECT_Y}] = shra(start[{RECT_Y}] * factor, {ZOOM_BITS})
         start[{RECT_W}] = (start[{RECT_W}] * factor) >> {ZOOM_BITS}
         start[{RECT_H}] = (start[{RECT_H}] * factor) >> {ZOOM_BITS}
         start += {RECT_SIZE}
@@ -1417,9 +1416,12 @@ def draw():
         ptr = draw_rect(ptr, 0, 480 - RADAR_MODE, 640, 1, rate_color(3, rgb(255,0,0), rgb(128, 128, 128)))
         ptr = draw_radar(ptr, 480 - RADAR_MODE)
 
-#    screen_off(-PX+240, -PY+240)
-#    zoom({rect[1].addr}, {RECT_MEM+RECT_NUM*RECT_SIZE}, 24)
+    screen_off(-PX+240, -PY+240)
 
+#    z = 24
+#    screen_off(shra((-PX+240)*z, {ZOOM_BITS}), shra((-PY+240)*z, {ZOOM_BITS}))
+#    zoom({rect[1].addr}, {RECT_MEM+RECT_NUM*RECT_SIZE}, z)
+ 
     if SCROLL_MODE < 0:
         screen_off((640-{W}*{TW})>>1, -SCROLL_MODE-480)
     else:
