@@ -24,7 +24,7 @@ DIRS = [1, 0, 0, -1, -1, 0, 0, 1]
 # fire points: r, u, l, d
 HERO_LASER_DIR = [10, -3, 4, -10, -10, -4, -4, 6]
 
-LASER_HEAT_MAX = 480
+POWER_DRAW_MAX = 480
 LASER_COST = 16
 RADAR_COST = 10
 LASER_CHARGE = 8
@@ -327,7 +327,7 @@ PADS_S = 0
 SPAWNS_NR = 0
 SPAWN_ID = 0
 TELEPORT_FRAME = 0
-LASER_HEAT = 0
+POWER_DRAW = 0
 MAP = {LEVELS}
 HEROR = {HERO}
 HEROL = {HEROL}
@@ -647,14 +647,14 @@ def upd_laser():
 
     if INP_STATE[{KEY_A}] == 0:
         if (INP_X == 0) & (INP_Y == 0):
-            LASER_HEAT = max(0, LASER_HEAT - {LASER_CHARGE})
+            POWER_DRAW = max(0, POWER_DRAW - {LASER_CHARGE})
         else:
-            LASER_HEAT = max(0, LASER_HEAT - {LASER_CHARGE//5})
+            POWER_DRAW = max(0, POWER_DRAW - {LASER_CHARGE//5})
         LASER_X = -1
         return 0
 
-    LASER_HEAT = min(LASER_HEAT + {LASER_COST}, {LASER_HEAT_MAX})
-    if LASER_HEAT >= {LASER_HEAT_MAX}:
+    POWER_DRAW = min(POWER_DRAW + {LASER_COST}, {POWER_DRAW_MAX})
+    if POWER_DRAW >= {POWER_DRAW_MAX}:
         LASER_X = -1
         return 0
 
@@ -1303,8 +1303,8 @@ def upd_hero():
         return
 
     if RADAR_MODE > 0:
-        LASER_HEAT = min(LASER_HEAT + {RADAR_COST}, {LASER_HEAT_MAX})
-        if LASER_HEAT >= {LASER_HEAT_MAX}:
+        POWER_DRAW = min(POWER_DRAW + {RADAR_COST}, {POWER_DRAW_MAX})
+        if POWER_DRAW >= {POWER_DRAW_MAX}:
             RADAR_MODE = 0
         else:
             RADAR_MODE -= 8
@@ -1333,7 +1333,7 @@ def upd_hero():
 
     if mclrxy(PADS_MAP, PX, PY):
         PADS_NR -= 1
-        LASER_HEAT = 0
+        POWER_DRAW = 0
     if (PADS_NR == 0) & atexitxy(PX, PY):
         NEXT_LEVEL = LEVEL + {LEVEL_SIZE}
         SCROLL_MODE = -480
@@ -1391,7 +1391,7 @@ def screen_off(ox, oy):
         ptr += {RECT_SIZE}
 
 def draw_status(ptr):
-    l = {LASER_HEAT_MAX} - LASER_HEAT
+    l = {POWER_DRAW_MAX} - POWER_DRAW
 
     ptr = draw_rect(ptr, 640-6, 0,
         6, l, rgb(min(128+(l>>2), 255), 32, 0))
