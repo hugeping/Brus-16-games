@@ -1073,6 +1073,9 @@ def screen_off(ox, oy):
         ptr += {RECT_SIZE}
 
 def draw_status(ptr):
+    if SCROLL_MODE != 0:
+        return ptr
+
     l = {POWER_DRAW_MAX} - POWER_DRAW
 
     ptr = draw_rect(ptr, 640-6, 0,
@@ -1168,7 +1171,7 @@ def draw():
 #    z = 24
 #    screen_off(shra((-PX+240)*z, {ZOOM_BITS}), shra((-PY+240)*z, {ZOOM_BITS}))
 #    zoom({rect[1].addr}, {RECT_MEM+RECT_NUM*RECT_SIZE}, z)
- 
+
     if SCROLL_MODE < 0:
         screen_off((640-{W*TW})>>1, -SCROLL_MODE-480)
     else:
