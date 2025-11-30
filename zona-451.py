@@ -9,6 +9,8 @@ def mswap(a, b):
 def mbool(a):
     return a != 0
 
+ZOOM_BITS = 4
+
 VIEW_SIZE = 7
 VIEW_R = (VIEW_SIZE//2)
 #MRECT = [0]*(VIEW_SIZE*VIEW_SIZE)
@@ -1389,6 +1391,15 @@ def draw_status(ptr):
 
 RADAR_MODE = 0
 
+def zoom(start, end, factor):
+    while start < end:
+        if start[{RECT_ABS}] == 0:
+            start[{RECT_X}] = shra(start[{RECT_X}] * factor, {ZOOM_BITS})
+            start[{RECT_Y}] = shra(start[{RECT_Y}] * factor, {ZOOM_BITS})
+        start[{RECT_W}] = (start[{RECT_W}] * factor) >> {ZOOM_BITS}
+        start[{RECT_H}] = (start[{RECT_H}] * factor) >> {ZOOM_BITS}
+        start += {RECT_SIZE}
+
 def draw():
     ptr = {RECT_MEM}
     bzero(ptr, {RECT_SIZE}*{RECT_NUM})
@@ -1402,13 +1413,21 @@ def draw():
     ptr = draw_aliens(ptr)
 
     if (RADAR_MODE > 0):
-        ptr = draw_rect(ptr, 0, 480 - RADAR_MODE, 15*32, 1, rate_color(3, rgb(255,0,0), rgb(128, 128, 128)))
+        radar = ptr
+        ptr = draw_rect(ptr, 0, 480 - RADAR_MODE, 640, 1, rate_color(3, rgb(255,0,0), rgb(128, 128, 128)))
         ptr = draw_radar(ptr, 480 - RADAR_MODE)
-#    screen_off(-PX+320, -PY+240)
+
+#    screen_off(-PX+240, -PY+240)
+#    zoom({rect[1].addr}, {RECT_MEM+RECT_NUM*RECT_SIZE}, 24)
+
     if SCROLL_MODE < 0:
         screen_off((640-{W}*{TW})>>1, -SCROLL_MODE-480)
     else:
         screen_off((640-{W}*{TW})>>1, SCROLL_MODE)
+
+    if (RADAR_MODE > 0):
+        radar[1] = 0
+
     ptr = draw_status(ptr)
 
 def main():
