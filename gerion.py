@@ -180,6 +180,7 @@ def lookup_door(cx, cy):
 
 def loadlev():
     BLINK_MODE = 0
+    EXPLODE_MODE = 0
     NEXT_LEVEL = LEVEL
     SCROLL_MODE = 480
     RADAR_MODE = 0
@@ -301,7 +302,8 @@ def upd_doors():
         if bit(DOORS[i], {DOOR_DEAD}):
             e = bit_gethi(DOORS[i], {DOOR_MASK}) + 1
             if e > 4:
-                mclr(DOORS_MAP, int2cx(DOORS[i]), int2cy(DOORS[i]))
+                if mclr(DOORS_MAP, int2cx(DOORS[i]), int2cy(DOORS[i])):
+                    EXPLODE_MODE += 1
             else:
                 DOORS[i] = bit_sethi(DOORS[i], {DOOR_MASK}, e)
         i += 1
@@ -329,7 +331,6 @@ def upd_laser():
             POWER_DRAW = max(0, POWER_DRAW - {LASER_CHARGE//5})
         LASER_X = -1
         return 0
-
     POWER_DRAW = min(POWER_DRAW + {LASER_COST}, {POWER_DRAW_MAX})
     if POWER_DRAW >= {POWER_DRAW_MAX}:
         LASER_X = -1
@@ -586,6 +587,9 @@ def draw_mrect(ptr, cx, cy, xoff, yoff):
             y ^= rnd()&1
     else:
         return ptr
+
+    if EXPLODE_MODE > 0:
+        ptr[5] = 0xffff
 
     ptr[0] = 1
     xmod = xoff >> 8
@@ -856,6 +860,7 @@ def upd_alien(a):
         if e <= 0:
             a[2] = 0
             ALIENS_NR -= 1
+            EXPLODE_MODE += 1
             SPAWN_FRAME = FRAMES
         return
 
@@ -1007,7 +1012,11 @@ def upd_hero():
                 TELEPORT_FRAME = FRAMES
                 return
 BLINK_MODE = 0
+EXPLODE_MODE = 0
+
 def update():
+    EXPLODE_MODE = 0
+
     if SCROLL_MODE > 0:
         SCROLL_MODE -= 16
         return
@@ -1021,7 +1030,7 @@ def update():
     if BLINK_MODE > 0:
         BLINK_MODE -= 1
     else:
-        BLINK_MODE = rate_trigger(6+(rnd()&0xf)) * (6+(rnd()&0xf))
+        BLINK_MODE = rate_trigger(7+(rnd()&0xf)) * (6+(rnd()&0xf))
     kbd_proc()
     upd_laser()
     upd_doors()
@@ -1079,9 +1088,10 @@ def draw():
     bzero(ptr, {RECT_SIZE}*{RECT_NUM})
 
     ptr = draw_rect(ptr, 0, 0, 640, 480, {BGCOL1})
-    ptr = draw_rect(ptr, PX-{TW}*{VIEW_R}, PY-{TH}*{VIEW_R}, {VIEW_SIZE-1}*32, {VIEW_SIZE-1}*32, {BGCOL2})
+    if BLINK_MODE == 0:
+        ptr = draw_rect(ptr, PX-{TW}*{VIEW_R}, PY-{TH}*{VIEW_R}, {VIEW_SIZE-1}*32, {VIEW_SIZE-1}*32, {BGCOL2})
 
-    if BLINK_MODE > 0:
+    if (BLINK_MODE > 0) & (EXPLODE_MODE == 0):
         if rate((rnd()&0xf)+1):
             ptr = draw_map(ptr, PX, PY)
     else:
