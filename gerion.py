@@ -1042,8 +1042,8 @@ def update():
 
     if BLINK_MODE > 0:
         BLINK_MODE -= 1
-    else:
-        BLINK_MODE = rate_trigger(7+(rnd()&0xf)) * (6+(rnd()&0xf))
+#    else:
+#        BLINK_MODE = rate_trigger(7+(rnd()&0xf)) * (6+(rnd()&0xf))
     upd_laser()
     upd_doors()
     upd_aliens()
