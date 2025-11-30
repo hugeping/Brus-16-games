@@ -474,6 +474,14 @@ def c2x(c):
 def c2y(c):
     return c*{TH}+({TH}>>1)
 
+def mblockxy(x, y):
+    return mblock(x2c(x), y2c(y))
+
+def mblock(x, y):
+    if inside(x, y) == 0:
+        return 1
+    return mget(LEVEL, x, y) | mget(DOORS_MAP, x, y)
+
 def lookup_door(cx, cy):
     i = 0
     while i < DOORS_NR:
@@ -648,7 +656,7 @@ def upd_laser():
 
     a = 0
 
-    while insidexy(ex, ey) & (mgetxy(LEVEL, ex, ey) == 0) & (mgetxy(DOORS_MAP, ex, ey) == 0):
+    while mblockxy(ex, ey) == 0:
         ex += dx
         ey += dy
         a = scan_alien(ex, ey, 0)
@@ -702,11 +710,7 @@ def light_ray(x, y, tx, ty, r):
         return 0;
 
     while (abs(tx - x) <= r) & (abs(ty - y) <= r):
-        if inside(x, y) == 0:
-            return 0
-        if mget(LEVEL, x, y):
-            return 0
-        if mget(DOORS_MAP, x, y):
+        if mblock(x, y):
             return 0
         x += dx
         y += dy
@@ -1042,27 +1046,7 @@ def kbd_proc():
             INP_Y = 1
 
 def map_coll(x, y, rx, ry):
-    if insidexy(x+rx, y-ry) == 0:
-        return 1
-    if insidexy(x+rx, y+ry) == 0:
-        return 1
-    if insidexy(x-rx, y-ry) == 0:
-        return 1
-    if insidexy(x-rx, y+ry) == 0:
-        return 1
-
-    if mgetxy(LEVEL, x, y) | \
-        mgetxy(LEVEL, x+rx, y-ry) | \
-        mgetxy(LEVEL, x+rx, y+ry) | \
-        mgetxy(LEVEL, x-rx, y-ry) | \
-        mgetxy(LEVEL, x-rx, y+ry):
-        return 1
-
-    return mgetxy(DOORS_MAP, x, y) | \
-        mgetxy(DOORS_MAP, x+rx, y-ry) | \
-        mgetxy(DOORS_MAP, x+rx, y+ry) | \
-        mgetxy(DOORS_MAP, x-rx, y-ry) | \
-        mgetxy(DOORS_MAP, x-rx, y+ry)
+    return mblockxy(x+rx, y-ry) | mblockxy(x+rx, y+ry) | mblockxy(x-rx, y-ry) | mblockxy(x-rx, y+ry)
 
 def draw_radar(ptr, pos):
     y = 0
@@ -1162,15 +1146,13 @@ def scan_alien(x, y, aa):
     return 0
 
 def alien_can_move(a, dir):
-    x = (a[0]>>{TWS}) + DIRS[dir*2]
-    y = (a[1]>>{THS}) + DIRS[dir*2+1]
+    xc = (a[0]>>{TWS}) + DIRS[dir*2]
+    yc = (a[1]>>{THS}) + DIRS[dir*2+1]
 
-    if inside(x, y) == 0:
-        return 1
-    if mget(LEVEL, x, y) | mget(DOORS_MAP, x, y):
+    if mblock(xc, yc):
         return 1
 
-    aa = scan_alien(c2x(x), c2y(y), a)
+    aa = scan_alien(c2x(xc), c2y(yc), a)
     if aa:
         return 1
     return 0
