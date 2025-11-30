@@ -500,7 +500,7 @@ def draw_hero(ptr, cx, cy):
         ptr[2] += d
         ptr[4] = max(wl, 2)
         if ptr[4] == 2:
-            ptr[5] = {col(200, 0, 0)}
+            ptr[5] = {rgb(200, 0, 0)}
             ptr[3] = min(ptr[3]+(HERO_DEAD-h), 12)
         i = {RECT_SIZE}
         while i < {len(HERO)}:
@@ -1052,7 +1052,7 @@ def draw_status(ptr):
     else:
         l = ((PADS_MAX - PADS_NR)*480) >> PADS_S
     if l >= 480:
-        col = rate_color(2, {col(0, 32, 255)}, {col(0, 212, 255)})
+        col = rate_color(2, {rgb(0, 32, 255)}, {rgb(0, 212, 255)})
     else:
         col = rgb(0, 32, min(128+(l>>2), 255))
     ptr = draw_rect(ptr, 0, 0,
