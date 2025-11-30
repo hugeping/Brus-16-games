@@ -392,28 +392,6 @@ def bit(a, v):
 def not_bit(a, v):
     return (a&v) == 0
 
-def or2(a, b):
-    if a != 0:
-        return 1
-    return b != 0
-
-def or3(a, b, c):
-    if a != 0:
-        return 1
-    return or2(b, c)
-
-def and2(a, b):
-    if a == 0:
-        return 0
-    if b == 0:
-        return 0
-    return 1
-
-def and3(a, b, c):
-    if a == 0:
-        return 0
-    return and2(b, c)
-
 def bit_sethi(a, mask, v):
     a &= ~mask
     a |= v<<8
@@ -667,30 +645,30 @@ def upd_laser():
     ey = y
 
     a = 0
+    if insidexy(ex, ey):
+        while (mgetxy(LEVEL, ex, ey) == 0) & (mgetxy(DOORS_MAP, ex, ey) == 0):
+            ex += dx
+            ey += dy
+            a = scan_alien(ex, ey, 0)
+            if a != 0:
+                e = bit_gethi(a[2], {ALIEN_MASK})
+                a[2] |= {ALIEN_HIT}
+                if (e > 0) & not_bit(a[2], {ALIEN_DEAD}):
+                    e -= 1
+                    a[2] = bit_sethi(a[2], {ALIEN_MASK}, e)
+                elif not_bit(a[2], {ALIEN_DEAD}):
+                    a[2] = {ALIEN_DEAD | (DOOR_HEALTH<<8)}
+                break
 
-    while and3(insidexy(ex, ey), (mgetxy(LEVEL, ex, ey) == 0), (mgetxy(DOORS_MAP, ex, ey) == 0)):
-        ex += dx
-        ey += dy
-        a = scan_alien(ex, ey, 0)
-        if a != 0:
-            e = bit_gethi(a[2], {ALIEN_MASK})
-            a[2] |= {ALIEN_HIT}
-            if (e > 0) & not_bit(a[2], {ALIEN_DEAD}):
-                e -= 1
-                a[2] = bit_sethi(a[2], {ALIEN_MASK}, e)
-            elif not_bit(a[2], {ALIEN_DEAD}):
-                a[2] = {ALIEN_DEAD | (DOOR_HEALTH<<8)}
-            break
-
-    if and2(insidexy(ex, ey), mgetxy(DOORS_MAP, ex, ey)):
-        door = lookup_door(x2c(ex), y2c(ey))
-        e = bit_gethi(door[0], {DOOR_MASK}) + 2
-        door[0] |= {DOOR_HIT}
-        if (e >= 0x1f) & not_bit(door[0], {DOOR_DEAD}):
-            door[0] = bit_sethi(door[0], {DOOR_MASK}, 0)
-            door[0] |= {DOOR_DEAD}
-        elif not_bit(door[0], {DOOR_DEAD}):
-            door[0] = bit_sethi(door[0], {DOOR_MASK}, e)
+        if mgetxy(DOORS_MAP, ex, ey):
+            door = lookup_door(x2c(ex), y2c(ey))
+            e = bit_gethi(door[0], {DOOR_MASK}) + 2
+            door[0] |= {DOOR_HIT}
+            if (e >= 0x1f) & not_bit(door[0], {DOOR_DEAD}):
+                door[0] = bit_sethi(door[0], {DOOR_MASK}, 0)
+                door[0] |= {DOOR_DEAD}
+            elif not_bit(door[0], {DOOR_DEAD}):
+                door[0] = bit_sethi(door[0], {DOOR_MASK}, e)
 
     ex = max(0, ex)
     ey = max(0, ey)
@@ -874,8 +852,9 @@ def draw_mrect(ptr, cx, cy, xoff, yoff):
 
 #    if inside(cx, cy) == 0:
 #        return ptr
-
-    if or2((inside(cx, cy) == 0), mget(LEVEL, cx, cy)):
+    if inside(cx, cy) == 0:
+        ptr[5] = {FGCOL}
+    elif mget(LEVEL, cx, cy):
         ptr[5] = {FGCOL}
     elif atexit(cx, cy):
         if PADS_NR <= 0:
@@ -1272,8 +1251,9 @@ def upd_alien(a):
         HERO_DEAD = 1
         kbd_clear()
 
-    if and3(insidexy(x, y), (RADAR_MODE == 480), (alien_visible(a) == 0)):
-        msetxy(RADAR_MAP, x, y, 1)
+    if insidexy(x, y):
+        if (RADAR_MODE == 480) & (alien_visible(a) == 0):
+            msetxy(RADAR_MAP, x, y, 1)
     return
 
 def upd_aliens():
