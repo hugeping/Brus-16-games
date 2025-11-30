@@ -647,30 +647,30 @@ def upd_laser():
     ey = y
 
     a = 0
-    if insidexy(ex, ey):
-        while (mgetxy(LEVEL, ex, ey) == 0) & (mgetxy(DOORS_MAP, ex, ey) == 0):
-            ex += dx
-            ey += dy
-            a = scan_alien(ex, ey, 0)
-            if a != 0:
-                e = bit_gethi(a[2], {ALIEN_MASK})
-                a[2] |= {ALIEN_HIT}
-                if (e > 0) & not_bit(a[2], {ALIEN_DEAD}):
-                    e -= 1
-                    a[2] = bit_sethi(a[2], {ALIEN_MASK}, e)
-                elif not_bit(a[2], {ALIEN_DEAD}):
-                    a[2] = {ALIEN_DEAD | (DOOR_HEALTH<<8)}
-                break
 
-        if mgetxy(DOORS_MAP, ex, ey):
-            door = lookup_door(x2c(ex), y2c(ey))
-            e = bit_gethi(door[0], {DOOR_MASK}) + 2
-            door[0] |= {DOOR_HIT}
-            if (e >= 0x1f) & not_bit(door[0], {DOOR_DEAD}):
-                door[0] = bit_sethi(door[0], {DOOR_MASK}, 0)
-                door[0] |= {DOOR_DEAD}
-            elif not_bit(door[0], {DOOR_DEAD}):
-                door[0] = bit_sethi(door[0], {DOOR_MASK}, e)
+    while insidexy(ex, ey) & (mgetxy(LEVEL, ex, ey) == 0) & (mgetxy(DOORS_MAP, ex, ey) == 0):
+        ex += dx
+        ey += dy
+        a = scan_alien(ex, ey, 0)
+        if a != 0:
+            e = bit_gethi(a[2], {ALIEN_MASK})
+            a[2] |= {ALIEN_HIT}
+            if (e > 0) & not_bit(a[2], {ALIEN_DEAD}):
+                e -= 1
+                a[2] = bit_sethi(a[2], {ALIEN_MASK}, e)
+            elif not_bit(a[2], {ALIEN_DEAD}):
+                a[2] = {ALIEN_DEAD | (DOOR_HEALTH<<8)}
+            break
+
+    if mgetxy(DOORS_MAP, ex, ey):
+        door = lookup_door(x2c(ex), y2c(ey))
+        e = bit_gethi(door[0], {DOOR_MASK}) + 2
+        door[0] |= {DOOR_HIT}
+        if (e >= 0x1f) & not_bit(door[0], {DOOR_DEAD}):
+            door[0] = bit_sethi(door[0], {DOOR_MASK}, 0)
+            door[0] |= {DOOR_DEAD}
+        elif not_bit(door[0], {DOOR_DEAD}):
+            door[0] = bit_sethi(door[0], {DOOR_MASK}, e)
 
     ex = max(0, ex)
     ey = max(0, ey)
@@ -1357,7 +1357,7 @@ ALIEN_COLS = [0,0,0,0,0]
 SCROLL_MODE = 0
 
 def setup():
-    LEVEL = MAP# + 4*{LEVEL_SIZE}
+    LEVEL = MAP + 4*{LEVEL_SIZE}
     i = 0
     while i < {len(ALIEN)}:
         ALIEN_COLS[i] = ALIEN[i*{RECT_SIZE}+5]
