@@ -1,6 +1,7 @@
 def start():
     main()
 
+TITLE = {TITLE}
 HERO_DEAD = 0
 HERO_LDIRS = {HERO_LASER_DIR}
 DIRS = {DIRS}
@@ -63,7 +64,7 @@ def min(a, b):
         return a
     return b
 
-def memcpy(src, dst, size):
+def memcpy(dst, src, size):
     end = src + size
     while src < end:
         poke(dst, src[0])
@@ -437,7 +438,7 @@ def draw_alien(ptr, a):
     if (alien_visible(a) == 0) | (ptr >= {RECT_MEM+RECT_SIZE*RECT_NUM}):
         return ptr
 
-    memcpy(ALIEN, ptr, {len(ALIEN)})
+    memcpy(ptr, ALIEN, {len(ALIEN)})
 
     ptr[1] = x2tl(x, ALIEN[3])
     ptr[2] = y2tl(y, ALIEN[4])
@@ -476,13 +477,13 @@ def draw_alien(ptr, a):
 
 def draw_hero(ptr, cx, cy):
     if HERO_DIR == 0:
-        memcpy(HEROR, ptr, {len(HERO)})
+        memcpy(ptr, HEROR, {len(HERO)})
     elif HERO_DIR == 2:
-        memcpy(HEROL, ptr, {len(HERO)})
+        memcpy(ptr, HEROL, {len(HERO)})
     elif HERO_DIR == 1:
-        memcpy(HEROU, ptr, {len(HERO)})
+        memcpy(ptr, HEROU, {len(HERO)})
     else:
-        memcpy(HEROD, ptr, {len(HERO)})
+        memcpy(ptr, HEROD, {len(HERO)})
     if (INP_X != 0) | (INP_Y != 0):
         ptr[4*{RECT_SIZE}+4] += 1 - ((FRAMES >> 2)&0x3)
         ptr[5*{RECT_SIZE}+4] += -1 + ((FRAMES >> 2)&0x3)
@@ -627,10 +628,9 @@ def draw_mrect(ptr, cx, cy, xoff, yoff):
 def vwall_scan(sx, sy, ey):
     r = 0
     while sy <= ey:
-        if inside(sx, sy) == 0:
-            break
-        if mget(LEVEL, sx, sy) == 0:
-            break
+        if inside(sx, sy) == 1:
+            if mget(LEVEL, sx, sy) == 0:
+                break
         sy += 1
         r += 1
     return r
@@ -638,10 +638,9 @@ def vwall_scan(sx, sy, ey):
 def hwall_scan(sx, sy, ex):
     r = 0
     while sx <= ex:
-        if inside(sx, sy) == 0:
-            break
-        if mget(LEVEL, sx, sy) == 0:
-            break
+        if inside(sx, sy) == 1:
+            if mget(LEVEL, sx, sy) == 0:
+                break
         sx += 1
         r += 1
     return r
@@ -956,7 +955,7 @@ def upd_hero():
     if HERO_DEAD > 0:
         HERO_DEAD += 1
         if INP_A & (HERO_DEAD>100):
-            INP_A = 0
+            kbd_clear()
             SCROLL_MODE = - 480
         return
 
@@ -1013,25 +1012,33 @@ def upd_hero():
                 return
 BLINK_MODE = 0
 EXPLODE_MODE = 0
+TITLE_MODE = 0
 
 def update():
+    kbd_proc()
     EXPLODE_MODE = 0
-
     if SCROLL_MODE > 0:
         SCROLL_MODE -= 16
         return
     elif SCROLL_MODE < 0:
         SCROLL_MODE += 16
         if SCROLL_MODE >= 0:
+            TITLE_MODE = 0
             SCROLL_MODE = 480
             LEVEL = NEXT_LEVEL
             loadlev()
         return
+    elif TITLE_MODE > 0:
+        TITLE_MODE = min(TITLE_MODE+1, 256)
+        if INP_A:
+            kbd_clear()
+            SCROLL_MODE = -480
+        return
+
     if BLINK_MODE > 0:
         BLINK_MODE -= 1
     else:
         BLINK_MODE = rate_trigger(7+(rnd()&0xf)) * (6+(rnd()&0xf))
-    kbd_proc()
     upd_laser()
     upd_doors()
     upd_aliens()
@@ -1041,6 +1048,7 @@ ALIEN_COLS = [0,0,0,0,0]
 SCROLL_MODE = 0
 
 def setup():
+    TITLE_MODE = 1
     LEVEL = MAP# + 4*{LEVEL_SIZE}
     i = 0
     while i < {len(ALIEN)}:
@@ -1048,7 +1056,10 @@ def setup():
         i += 1
 
 def screen_off(ox, oy):
-    ptr = {RECT_MEM} + {RECT_SIZE} # skip bg
+    ptr = {RECT_MEM} #+ {RECT_SIZE} # skip bg
+    if ptr[0]:
+        ptr[2] += oy
+    ptr += {RECT_SIZE}
     eptr = {RECT_MEM} + {RECT_NUM}*{RECT_SIZE}
     while ptr < eptr:
         if ptr[0]:
@@ -1083,9 +1094,24 @@ def zoom(start, end, factor):
         start[{RECT_H}] = (start[{RECT_H}] * factor) >> {ZOOM_BITS}
         start += {RECT_SIZE}
 
+def zoomx(start, end, factor, bits):
+    while start < end:
+        start[{RECT_W}] = (start[{RECT_W}] * factor) >> bits
+        start += {RECT_SIZE}
+
+def draw_title(ptr):
+    memcpy(ptr, TITLE, {len(TITLE)})
+    zoomx(ptr, ptr + {len(TITLE)}, min(TITLE_MODE>>1, 128), 7)
+    return ptr + {len(TITLE)}
+
 def draw():
     ptr = {RECT_MEM}
     bzero(ptr, {RECT_SIZE}*{RECT_NUM})
+    if TITLE_MODE:
+        ptr = draw_title(ptr)
+        if SCROLL_MODE < 0:
+            screen_off(0, -SCROLL_MODE-480)
+        return
 
     ptr = draw_rect(ptr, 0, 0, 640, 480, {BGCOL1})
     if BLINK_MODE == 0:
@@ -1112,9 +1138,9 @@ def draw():
 #    zoom({rect[1].addr}, {RECT_MEM+RECT_NUM*RECT_SIZE}, z)
  
     if SCROLL_MODE < 0:
-        screen_off((640-{W}*{TW})>>1, -SCROLL_MODE-480)
+        screen_off((640-{W*TW})>>1, -SCROLL_MODE-480)
     else:
-        screen_off((640-{W}*{TW})>>1, SCROLL_MODE)
+        screen_off((640-{W*TW})>>1, SCROLL_MODE)
 
     if (RADAR_MODE > 0):
         radar[1] = 0
