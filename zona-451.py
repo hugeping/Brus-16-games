@@ -392,6 +392,28 @@ def bit(a, v):
 def not_bit(a, v):
     return (a&v) == 0
 
+def or2(a, b):
+    if a != 0:
+        return 1
+    return b != 0
+
+def or3(a, b, c):
+    if a != 0:
+        return 1
+    return or2(b, c)
+
+def and2(a, b):
+    if a == 0:
+        return 0
+    if b == 0:
+        return 0
+    return 1
+
+def and3(a, b, c):
+    if a == 0:
+        return 0
+    return and2(b, c)
+
 def bit_sethi(a, mask, v):
     a &= ~mask
     a |= v<<8
@@ -451,11 +473,11 @@ def x2c(x):
 def y2c(y):
     return y >> {THS}
 
-def x2tl(x):
-    return (x >> {TWS}) + {TW//2}
+def x2tl(x, w):
+    return x - (w>>1)
 
-def y2tl(y):
-    return (y >> {THS}) + {TH//2}
+def y2tl(y, h):
+    return y - (h>>1)
 
 def c2int(cx, cy):
     return (cy<<4)|cx
@@ -646,7 +668,7 @@ def upd_laser():
 
     a = 0
 
-    while insidexy(ex, ey) & (mgetxy(LEVEL, ex, ey) == 0) & (mgetxy(DOORS_MAP, ex, ey) == 0):
+    while and3(insidexy(ex, ey), (mgetxy(LEVEL, ex, ey) == 0), (mgetxy(DOORS_MAP, ex, ey) == 0)):
         ex += dx
         ey += dy
         a = scan_alien(ex, ey, 0)
@@ -660,7 +682,7 @@ def upd_laser():
                 a[2] = {ALIEN_DEAD | (DOOR_HEALTH<<8)}
             break
 
-    if mgetxy(DOORS_MAP, ex, ey):
+    if and2(insidexy(ex, ey), mgetxy(DOORS_MAP, ex, ey)):
         door = lookup_door(x2c(ex), y2c(ey))
         e = bit_gethi(door[0], {DOOR_MASK}) + 2
         door[0] |= {DOOR_HIT}
@@ -743,8 +765,8 @@ def draw_alien(ptr, a):
 
     memcpy(ALIEN, ptr, {len(ALIEN)})
 
-    ptr[1] = x - (ALIEN[3]>>1)
-    ptr[2] = y - (ALIEN[4]>>1)
+    ptr[1] = x2tl(x, ALIEN[3])
+    ptr[2] = y2tl(y, ALIEN[4])
 
     i = 0
     while i < {len(ALIEN)//RECT_SIZE}:
@@ -853,7 +875,7 @@ def draw_mrect(ptr, cx, cy, xoff, yoff):
 #    if inside(cx, cy) == 0:
 #        return ptr
 
-    if mget(LEVEL, cx, cy) | (inside(cx, cy) == 0):
+    if or2((inside(cx, cy) == 0), mget(LEVEL, cx, cy)):
         ptr[5] = {FGCOL}
     elif atexit(cx, cy):
         if PADS_NR <= 0:
@@ -1140,8 +1162,8 @@ def alien_coll(a):
 
     w2 = ALIEN[3]
     h2 = ALIEN[4]
-    x2 = a[0]-(w2>>1)
-    y2 = a[1]-(h2>>1)
+    x2 = x2tl(a[0], w2)
+    y2 = y2tl(a[1], h2)
 
     return hit2(x1, y1, w1, h1, x2, y2, w2, h2)
 
@@ -1153,7 +1175,7 @@ def scan_alien(x, y, aa):
     w = ALIEN[3]
     h = ALIEN[4]
     while a < ae:
-        if (a[2]!=0) & (aa != a) & hit1(a[0]-(w>>1), a[1]-(h>>1), w, h, x, y):
+        if (a[2]!=0) & (aa != a) & hit1(x2tl(a[0], w), y2tl(a[1], h), w, h, x, y):
             return a
         a += 3
     return 0
@@ -1250,7 +1272,7 @@ def upd_alien(a):
         HERO_DEAD = 1
         kbd_clear()
 
-    if (RADAR_MODE == 480) & (alien_visible(a) == 0):
+    if and3(insidexy(x, y), (RADAR_MODE == 480), (alien_visible(a) == 0)):
         msetxy(RADAR_MAP, x, y, 1)
     return
 
@@ -1278,7 +1300,6 @@ def upd_hero():
         if INP_A & (HERO_DEAD>100):
             INP_A = 0
             SCROLL_MODE = - 480
-#            loadlev()
         return
 
     if RADAR_MODE > 0:
@@ -1306,6 +1327,10 @@ def upd_hero():
         HERO_DIR = 3
     elif (INP_Y < 0) & ((HERO_DIR == 3) | (INP_X == 0)):
         HERO_DIR = 1
+
+    if insidexy(PX, PY) == 0:
+        return
+
     if mclrxy(PADS_MAP, PX, PY):
         PADS_NR -= 1
         LASER_HEAT = 0
@@ -1315,8 +1340,8 @@ def upd_hero():
         return
     if mgetxy(SPAWN_MAP, PX, PY) & (mgetxy(SPAWN_MAP, ox, oy) != 1) & (SPAWNS_NR > 1):
         i = 0
-        cx = PX >> {TWS}
-        cy = PY >> {THS}
+        cx = x2c(PX)
+        cy = y2c(PY)
         while i < SPAWNS_NR:
             spawn = SPAWNS[i]
             i += 1
@@ -1350,7 +1375,7 @@ ALIEN_COLS = [0,0,0,0,0]
 SCROLL_MODE = 0
 
 def setup():
-    LEVEL = MAP
+    LEVEL = MAP# + 4*{LEVEL_SIZE}
     i = 0
     while i < {len(ALIEN)}:
         ALIEN_COLS[i] = ALIEN[i*{RECT_SIZE}+5]
