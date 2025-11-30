@@ -2,6 +2,7 @@ def start():
     main()
 
 TITLE = {TITLE}
+ASTEROID = {ASTEROID}
 HERO_DEAD = 0
 HERO_LDIRS = {HERO_LASER_DIR}
 DIRS = {DIRS}
@@ -97,10 +98,14 @@ def to_bool(a):
 seed = 7
 
 def rnd():
-    seed ^= seed << 7
-    seed ^= seed >> 9
-    seed ^= seed << 8
+    seed = random(seed)
     return seed
+
+def random(s):
+    s ^= s << 7
+    s ^= s >> 9
+    s ^= s << 8
+    return s
 
 def mset(m, cx, cy, v):
     mask = 1<<cx
@@ -1029,7 +1034,7 @@ def update():
             loadlev()
         return
     elif TITLE_MODE > 0:
-        TITLE_MODE = min(TITLE_MODE+1, 256)
+        TITLE_MODE = min(TITLE_MODE+1, 512)
         if INP_A:
             kbd_clear()
             SCROLL_MODE = -480
@@ -1099,10 +1104,37 @@ def zoomx(start, end, factor, bits):
         start[{RECT_W}] = (start[{RECT_W}] * factor) >> bits
         start += {RECT_SIZE}
 
+def draw_stars(ptr):
+    i = 0
+    seed = random(1)
+    while i < 31:
+        seed = random(seed)
+        x = (seed&0x1ff) + 64
+        seed = random(seed)
+        y = seed&0x01ff
+        c = 128 + (seed&0xff)<<1
+        ptr = draw_rect(ptr, x, y, 1, 1, rgb(c, c, c))
+        i += 1
+    return ptr
+
 def draw_title(ptr):
+    ptr = draw_stars(ptr)
     memcpy(ptr, TITLE, {len(TITLE)})
-    zoomx(ptr, ptr + {len(TITLE)}, min(TITLE_MODE>>1, 128), 7)
-    return ptr + {len(TITLE)}
+    zoomx(ptr, ptr + {len(TITLE)}, min((TITLE_MODE)>>2, 128), 7)
+    ptr += {len(TITLE)}
+    memcpy(ptr, ASTEROID, {len(ASTEROID)})
+    ptr[1] += 295
+    ptr[2] += max(480 - (TITLE_MODE>>2), 352)
+    y = ptr[2]
+    if y <= 352:
+        if rate(7):
+            ptr[2] -= 1
+        else:
+            ptr[2] += 1
+    ptr += {len(ASTEROID)}
+    if rate(6) & rate(4):
+        ptr = draw_rect(ptr, 294, y+19, 4, 4, {rgb(0, 220, 0)} + rgb(0, (FRAMES&0x7)<<1, 0))
+    return ptr + {len(ASTEROID)}
 
 def draw():
     ptr = {RECT_MEM}
