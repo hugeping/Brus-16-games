@@ -1416,7 +1416,7 @@ def draw():
         ptr = draw_rect(ptr, 0, 480 - RADAR_MODE, 640, 1, rate_color(3, rgb(255,0,0), rgb(128, 128, 128)))
         ptr = draw_radar(ptr, 480 - RADAR_MODE)
 
-    screen_off(-PX+240, -PY+240)
+#    screen_off(-PX+240, -PY+240)
 
 #    z = 24
 #    screen_off(shra((-PX+240)*z, {ZOOM_BITS}), shra((-PY+240)*z, {ZOOM_BITS}))
