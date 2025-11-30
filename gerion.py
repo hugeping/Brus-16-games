@@ -179,6 +179,7 @@ def lookup_door(cx, cy):
     return 0
 
 def loadlev():
+    BLINK_MODE = 0
     NEXT_LEVEL = LEVEL
     SCROLL_MODE = 480
     RADAR_MODE = 0
@@ -1005,7 +1006,7 @@ def upd_hero():
                 PY = c2y(int2cy(spawn))
                 TELEPORT_FRAME = FRAMES
                 return
-
+BLINK_MODE = 0
 def update():
     if SCROLL_MODE > 0:
         SCROLL_MODE -= 16
@@ -1017,6 +1018,10 @@ def update():
             LEVEL = NEXT_LEVEL
             loadlev()
         return
+    if BLINK_MODE > 0:
+        BLINK_MODE -= 1
+    else:
+        BLINK_MODE = rate_trigger(6+(rnd()&0xf)) * (6+(rnd()&0xf))
     kbd_proc()
     upd_laser()
     upd_doors()
@@ -1076,7 +1081,11 @@ def draw():
     ptr = draw_rect(ptr, 0, 0, 640, 480, {BGCOL1})
     ptr = draw_rect(ptr, PX-{TW}*{VIEW_R}, PY-{TH}*{VIEW_R}, {VIEW_SIZE-1}*32, {VIEW_SIZE-1}*32, {BGCOL2})
 
-    ptr = draw_map(ptr, PX, PY)
+    if BLINK_MODE > 0:
+        if rate((rnd()&0xf)+1):
+            ptr = draw_map(ptr, PX, PY)
+    else:
+        ptr = draw_map(ptr, PX, PY)
     ptr = draw_hero(ptr, PX, PY)
     ptr = draw_laser(ptr)
     ptr = draw_aliens(ptr)
