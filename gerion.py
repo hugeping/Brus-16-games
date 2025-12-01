@@ -355,9 +355,9 @@ def upd_laser():
 
     if INP_STATE[{KEY_A}] == 0:
         if (INP_X == 0) & (INP_Y == 0):
-            POWER_DRAW = max(0, POWER_DRAW - {LASER_CHARGE})
+            POWER_DRAW = max(0, POWER_DRAW - {POWER_CHARGE})
         else:
-            POWER_DRAW = max(0, POWER_DRAW - {LASER_CHARGE//5})
+            POWER_DRAW = max(0, POWER_DRAW - {POWER_CHARGE_MOVE})
         LASER_X = -1
         return 0
     POWER_DRAW = min(POWER_DRAW + {LASER_COST}, {POWER_DRAW_MAX})
