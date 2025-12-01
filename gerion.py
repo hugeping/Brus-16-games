@@ -947,7 +947,7 @@ def upd_alien(a):
     if (get_alien_dir() & 1):
         {mswap("dl", "dr")}
 
-    if (ttl == 0) & aligned & (t > 0):
+    if (((ttl == 0)|bit(a[2], {ALIEN_HIT})) & aligned & (t > 0)):
         if (alien_can_move(a, dl) == 1):
             dir = dl
             ttl = 4
