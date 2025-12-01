@@ -1125,6 +1125,9 @@ def zoom(start, end, factor):
         start[{RECT_Y}] = shra(start[{RECT_Y}] * factor, {ZOOM_BITS})
         start[{RECT_W}] = (start[{RECT_W}] * factor) >> {ZOOM_BITS}
         start[{RECT_H}] = (start[{RECT_H}] * factor) >> {ZOOM_BITS}
+        start[{RECT_W}] += (factor > 1<<{ZOOM_BITS})
+        start[{RECT_H}] += (factor > 1<<{ZOOM_BITS})
+
         start += {RECT_SIZE}
 
 def zoomx(start, end, factor, bits):
