@@ -1,6 +1,16 @@
 def start():
     main()
 
+def debug_val(x):
+    d = (x >> 12) & 15
+    poke(-1, d + 48 + (d > 9) * 7)
+    d = (x >> 8) & 15
+    poke(-1, d + 48 + (d > 9) * 7)
+    d = (x >> 4) & 15
+    poke(-1, d + 48 + (d > 9) * 7)
+    d = x & 15
+    poke(-1, d + 48 + (d > 9) * 7)
+
 TITLE = {TITLE}
 ASTEROID = {ASTEROID}
 HERO_DEAD = 0
@@ -853,8 +863,8 @@ def scan_alien(x, y, aa):
     return 0
 
 def alien_can_move(a, dir):
-    xc = (a[0]>>{TWS}) + DIRS[dir*2]
-    yc = (a[1]>>{THS}) + DIRS[dir*2+1]
+    xc = x2c(a[0]) + DIRS[dir*2]
+    yc = y2c(a[1]) + DIRS[dir*2+1]
 
     if mblock(xc, yc):
         return 0
@@ -865,6 +875,8 @@ def alien_can_move(a, dir):
     return 1
 
 def alien_sight(x, y, tx, ty):
+    if (x2c(x) != x2c(tx)) & (y2c(y) != y2c(ty)):
+        return 0;
     return light_ray(x2c(x), y2c(y), x2c(tx), y2c(ty), {W})
 
 def upd_alien(a):
@@ -933,6 +945,7 @@ def upd_alien(a):
         if (aa == 0) | (aa > a):
             x += DIRS[dir*2]
             y += DIRS[dir*2+1]
+
 
     a[2] &= ~0xf3
     a[2] |= dir | (ttl << 4)
@@ -1064,7 +1077,7 @@ SCROLL_MODE = 0
 
 def setup():
     TITLE_MODE = 1
-    LEVEL = MAP# + 4*{LEVEL_SIZE}
+    LEVEL = MAP# + 1*{LEVEL_SIZE}
     i = 0
     while i < {len(ALIEN)}:
         ALIEN_COLS[i] = ALIEN[i*{RECT_SIZE}+5]
@@ -1072,9 +1085,9 @@ def setup():
 
 def screen_off(ox, oy):
     ptr = {RECT_MEM} #+ {RECT_SIZE} # skip bg
-    if ptr[0]:
-        ptr[2] += oy
-    ptr += {RECT_SIZE}
+    if ptr[0] & (SCROLL_MODE ==0):
+#        ptr[2] += oy
+        ptr += {RECT_SIZE}
     eptr = {RECT_MEM} + {RECT_NUM}*{RECT_SIZE}
     while ptr < eptr:
         if ptr[0]:
@@ -1159,8 +1172,10 @@ def zoom_mode():
         current_zoom += 1
     if current_zoom > target_z:
         current_zoom -= 1
-
-    zoom({rect[1].addr}, {RECT_MEM + (RECT_NUM - 1) * RECT_SIZE}, current_zoom)
+    if SCROLL_MODE == 0:
+        zoom({rect[1].addr}, {RECT_MEM + (RECT_NUM - (1)) * RECT_SIZE}, current_zoom)
+    else:
+        zoom({rect[0].addr}, {RECT_MEM + (RECT_NUM - (0)) * RECT_SIZE}, current_zoom)
     ox = 240 - shra(PX * current_zoom, {ZOOM_BITS})
     oy = 240 - shra(PY * current_zoom, {ZOOM_BITS})
     screen_off(ox, oy)
@@ -1174,7 +1189,9 @@ def draw():
             screen_off(0, -SCROLL_MODE-480)
         return
 
-    ptr = draw_rect(ptr, 0, 0, 640, 480, {BGCOL1})
+    if SCROLL_MODE == 0:
+        ptr = draw_rect(ptr, 0, 0, 640, 480, {BGCOL1})
+
     if BLINK_MODE == 0:
         ptr = draw_rect(ptr, PX-{TW}*{VIEW_R}, PY-{TH}*{VIEW_R}, {VIEW_SIZE-1}*32, {VIEW_SIZE-1}*32, {BGCOL2})
 
@@ -1192,7 +1209,7 @@ def draw():
         ptr = draw_rect(ptr, 0, 480 - RADAR_MODE, 640, 1, rate_color(3, rgb(255,0,0), rgb(128, 128, 128)))
         ptr = draw_radar(ptr, 480 - RADAR_MODE)
 
-    # zoom_mode()
+#    zoom_mode()
 
     if SCROLL_MODE < 0:
         screen_off((640-{W*TW})>>1, -SCROLL_MODE-480)

@@ -189,7 +189,13 @@ ALIEN_HEALTH = 0x16
 DOOR_HIT    = 0x8000
 DOOR_DEAD   = 0x4000
 DOOR_MASK   = 0x1F00
-DOOR_HEALTH = 0x16
+DOOR_HEALTH = 0x19
+
+def debug(text):
+    code = []
+    for c in text:
+        code.append(f'poke(-1, {ord(c)})')
+    return ';'.join(code)
 
 MAP = (
 '''
