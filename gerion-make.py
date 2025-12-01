@@ -176,6 +176,7 @@ ITEM_PAD   = 0x0100
 ITEM_ALIEN = 0x0200
 ITEM_DOOR  = 0x0300
 ITEM_ALIEN_BOSS = 0x0400
+ITEM_DOOR_SECRET  = 0x0500
 ITEM_SPAWN = 0xff00
 ITEM_MASK  = 0xff00
 
@@ -188,6 +189,7 @@ ALIEN_HEALTH = 0x16
 
 DOOR_HIT    = 0x8000
 DOOR_DEAD   = 0x4000
+DOOR_SECRET = 0x2000
 DOOR_MASK   = 0x1F00
 DOOR_HEALTH = 0x19
 
@@ -314,6 +316,8 @@ def map2bit(t):
                 items.append((x, y, ITEM_ALIEN_BOSS))
             elif i == '-' or i == '|':
                 items.append((x, y, ITEM_DOOR))
+            elif i == '?':
+                items.append((x, y, ITEM_DOOR_SECRET))
             x += 1
         r.append(c>>1)
         y += 1

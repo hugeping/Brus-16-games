@@ -256,6 +256,10 @@ def loadlev():
                 mset(DOORS_MAP, cx, cy, 1)
                 DOORS[DOORS_NR] = c2int(cx, cy)
                 DOORS_NR += 1
+            elif it == {ITEM_DOOR_SECRET}:
+                mset(DOORS_MAP, cx, cy, 1)
+                DOORS[DOORS_NR] = c2int(cx, cy)|{DOOR_SECRET}
+                DOORS_NR += 1
         cb += 1
     PADS_S = 0
     PADS_MAX = PADS_NR
@@ -594,12 +598,15 @@ def draw_mrect(ptr, cx, cy, xoff, yoff):
             ptr[5] = 0xff00
         elif bit(door[0], {DOOR_HIT}):
             ptr[5] = 0xffff
+        elif bit(door[0], {DOOR_SECRET}):
+            ptr[5] = {FGCOL}
         else:
             ptr[5] = { DOORCOL }
-        if mget(LEVEL, cx + 1, cy) | mget(LEVEL, cx - 1, cy):
-            x = 1; y = {TH//2-8}; w = {TW-2}; h = 16
-        else:
-            x = {TW//2-8}; y = 1; w = 16; h = {TH-2}
+        if not_bit(door[0], {DOOR_SECRET}):
+            if mget(LEVEL, cx + 1, cy) | mget(LEVEL, cx - 1, cy):
+                x = 1; y = {TH//2-8}; w = {TW-2}; h = 16
+            else:
+                x = {TW//2-8}; y = 1; w = 16; h = {TH-2}
 
         if bit(door[0], {DOOR_DEAD}):
             x += 7 - (rnd() & 0xf)
