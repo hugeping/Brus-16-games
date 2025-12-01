@@ -1,15 +1,15 @@
 def start():
     main()
 
-def debug_val(x):
-    d = (x >> 12) & 15
-    poke(-1, d + 48 + (d > 9) * 7)
-    d = (x >> 8) & 15
-    poke(-1, d + 48 + (d > 9) * 7)
-    d = (x >> 4) & 15
-    poke(-1, d + 48 + (d > 9) * 7)
-    d = x & 15
-    poke(-1, d + 48 + (d > 9) * 7)
+#def debug_val(x):
+#    d = (x >> 12) & 15
+#    poke(-1, d + 48 + (d > 9) * 7)
+#    d = (x >> 8) & 15
+#    poke(-1, d + 48 + (d > 9) * 7)
+#    d = (x >> 4) & 15
+#    poke(-1, d + 48 + (d > 9) * 7)
+#    d = x & 15
+#    poke(-1, d + 48 + (d > 9) * 7)
 
 TITLE = {TITLE}
 ASTEROID = {ASTEROID}
@@ -30,7 +30,9 @@ SPAWNS_NR = 0
 SPAWN_ID = 0
 TELEPORT_FRAME = 0
 POWER_DRAW = 0
-MAP = {LEVELS}
+LEVELS = {LEVELS}
+LEVELS_DIR = {LEVELS_DIR}
+LEVEL_NR = 0
 HEROR = {HERO}
 HEROL = {HEROL}
 HEROU = {HEROU}
@@ -41,7 +43,7 @@ ALIENS_NR = 0
 DOORS = {DOORS}
 DOORS_NR = 0
 
-SPAWNS = [0, 0, 0, 0, 0, 0, 0, 0]
+SPAWNS = {SPAWNS}
 LEVEL = 0
 NEXT_LEVEL = 0
 HERO_DIR = 0
@@ -219,14 +221,14 @@ def loadlev():
     bzero(ALIENS, {ALIENS_SIZE})
 
     DOORS_NR = 0
-    bzero(DOORS, 8)
+    bzero(DOORS, {DOORS_MAX})
 
     # items
     cb += 1
     bzero(PADS_MAP, {H})
     bzero(SPAWN_MAP, {H})
     bzero(DOORS_MAP, {H})
-    bzero(SPAWNS, 8)
+    bzero(SPAWNS, {SPAWNS_MAX})
     PADS_NR = 0
     SPAWNS_NR = 0
     SPAWN_ID = 0
@@ -236,31 +238,33 @@ def loadlev():
 
     ecb = cb + {MAX_ITEMS}
     while cb < ecb:
-        if (cb[0]&{ITEM_MASK}) != 0:
-            cx = int2cx(cb[0])
-            cy = int2cy(cb[0])
-            it = cb[0]&{ITEM_MASK}
-            if it == {ITEM_PAD}:
-                mset(PADS_MAP, cx, cy, 1)
-                PADS_NR += 1
-            elif it == {ITEM_SPAWN}:
-                SPAWNS[SPAWNS_NR] = c2int(cx, cy)
-                mset(SPAWN_MAP, cx, cy, 1)
-                SPAWNS_NR += 1
-            elif it == {ITEM_ALIEN}:
-                new_alien(c2x(cx), c2y(cy))
-            elif it == {ITEM_ALIEN_BOSS}:
-                new_alien(c2x(cx), c2y(cy))
-                ALIENS[ALIENS_NR-1+2] |= {ALIEN_BOSS}
-            elif it == {ITEM_DOOR}:
-                mset(DOORS_MAP, cx, cy, 1)
-                DOORS[DOORS_NR] = c2int(cx, cy)
-                DOORS_NR += 1
-            elif it == {ITEM_DOOR_SECRET}:
-                mset(DOORS_MAP, cx, cy, 1)
-                DOORS[DOORS_NR] = c2int(cx, cy)|{DOOR_SECRET}
-                DOORS_NR += 1
+        if not_bit(cb[0], {ITEM_MASK}):
+            break
+        cx = int2cx(cb[0])
+        cy = int2cy(cb[0])
+        it = cb[0]&{ITEM_MASK}
+        if it == {ITEM_PAD}:
+            mset(PADS_MAP, cx, cy, 1)
+            PADS_NR += 1
+        elif it == {ITEM_SPAWN}:
+            SPAWNS[SPAWNS_NR] = c2int(cx, cy)
+            mset(SPAWN_MAP, cx, cy, 1)
+            SPAWNS_NR += 1
+        elif it == {ITEM_ALIEN}:
+            new_alien(c2x(cx), c2y(cy))
+        elif it == {ITEM_ALIEN_BOSS}:
+            new_alien(c2x(cx), c2y(cy))
+            ALIENS[ALIENS_NR-1+2] |= {ALIEN_BOSS}
+        elif it == {ITEM_DOOR}:
+            mset(DOORS_MAP, cx, cy, 1)
+            DOORS[DOORS_NR] = c2int(cx, cy)
+            DOORS_NR += 1
+        elif it == {ITEM_DOOR_SECRET}:
+            mset(DOORS_MAP, cx, cy, 1)
+            DOORS[DOORS_NR] = c2int(cx, cy)|{DOOR_SECRET}
+            DOORS_NR += 1
         cb += 1
+
     PADS_S = 0
     PADS_MAX = PADS_NR
     while (1<<PADS_S) < PADS_NR:
@@ -336,7 +340,7 @@ def upd_laser():
     ae = ALIENS + {ALIENS_SIZE}
     while a < ae:
         a[2] &= {~ALIEN_HIT}
-        a += 3
+        a += {ALIEN_SIZE}
 
     i = 0
     while i < DOORS_NR:
@@ -732,10 +736,12 @@ INP_Y = 0
 INP_X = 0
 INP_A = 0
 INP_B = 0
+INP_C = 0
 
 def kbd_clear():
     INP_A = 0
     INP_B = 0
+    INP_C = 0
 
 def kbd_proc():
     i = 0
@@ -754,6 +760,8 @@ def kbd_proc():
                 INP_A = c
             elif i == {KEY_B}:
                 INP_B = c
+            elif i == {KEY_C}:
+                INP_C = c
             INP_STATE[i] = c
         i += 1
 
@@ -799,7 +807,7 @@ def draw_aliens(ptr):
     while a < ae:
         if a[2] != 0:
             ptr = draw_alien(ptr, a)
-        a += 3
+        a += {ALIEN_SIZE}
     return ptr
 
 ALIEN_DIR = 0
@@ -833,7 +841,7 @@ def new_alien(sx, sy):
             ALIENS_NR += 1
             SPAWN_FRAME = FRAMES
             return
-        a += 3
+        a += {ALIEN_SIZE}
 
 def hit1(x, y, w, h, tx, ty):
     return (tx >= x) & (tx < x + w) & \
@@ -866,7 +874,7 @@ def scan_alien(x, y, aa):
     while a < ae:
         if (a[2]!=0) & (aa != a) & hit1(x2tl(a[0], w), y2tl(a[1], h), w, h, x, y):
             return a
-        a += 3
+        a += {ALIEN_SIZE}
     return 0
 
 def alien_can_move(a, dir):
@@ -983,7 +991,7 @@ def upd_aliens():
         while a < ae:
             if a[2] != 0:
                 upd_alien(a)
-            a += 3
+            a += {ALIEN_SIZE}
         return
 
 def upd_hero():
@@ -1000,6 +1008,13 @@ def upd_hero():
             RADAR_MODE = 0
         else:
             RADAR_MODE -= 8
+
+    if INP_C:
+        kbd_clear()
+        LEVEL_NR += 1
+        NEXT_LEVEL = LEVELS + LEVELS_DIR[LEVEL_NR]
+        SCROLL_MODE = -480
+        return
 
     if INP_B & (RADAR_MODE == 0):
         INP_B = 0
@@ -1027,7 +1042,8 @@ def upd_hero():
         PADS_NR -= 1
         POWER_DRAW = 0
     if (PADS_NR == 0) & atexitxy(PX, PY):
-        NEXT_LEVEL = LEVEL + {LEVEL_SIZE}
+        LEVEL_NR += 1
+        NEXT_LEVEL = LEVELS + LEVELS_DIR[LEVEL_NR]
         SCROLL_MODE = -480
         return
     if mgetxy(SPAWN_MAP, PX, PY) & (mgetxy(SPAWN_MAP, ox, oy) != 1) & (SPAWNS_NR > 1):
@@ -1084,7 +1100,9 @@ SCROLL_MODE = 0
 
 def setup():
     TITLE_MODE = 1
-    LEVEL = MAP# + 1*{LEVEL_SIZE}
+    LEVEL_NR = 0
+    LEVEL = LEVELS + LEVELS_DIR[LEVEL_NR]
+
     i = 0
     while i < {len(ALIEN)}:
         ALIEN_COLS[i] = ALIEN[i*{RECT_SIZE}+5]

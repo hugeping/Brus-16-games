@@ -15,7 +15,6 @@ VIEW_R = (VIEW_SIZE//2)
 #MRECT = [0]*(VIEW_SIZE*VIEW_SIZE)
 
 MAX_ITEMS = 24
-LEVEL_SIZE = 16 + MAX_ITEMS
 
 KEY_STATE = [-1]*KEY_NUM
 SPAWN_DELAY = 100
@@ -84,9 +83,15 @@ ALIEN = [
     0, 18, 18, 4, 6, 0,
 ]
 
-ALIENS_SIZE = 8*3
+DOORS_MAX = 16
+ALIENS_MAX = 8
+SPAWNS_MAX = 8
+
+ALIEN_SIZE = 3
+ALIENS_SIZE = ALIENS_MAX*ALIEN_SIZE
 ALIENS = [0]*ALIENS_SIZE
-DOORS = [0]*8
+DOORS = [0]*DOORS_MAX
+SPAWNS = [0]*SPAWNS_MAX
 
 c1 = rgb(211, 211, 211)
 c2 = rgb(192, 192, 192)
@@ -324,17 +329,16 @@ def map2bit(t):
     if ex < 0:
         ex, ey = px, py
     r.append((py<<4)|px|(ey<<12)|(ex<<8))
-    n = 0
     for i in items:
         r.append((i[1]<<4)|i[0]|i[2])
-        n += 1
-    for i in range(MAX_ITEMS - n):
-        r.append(0)
+    r.append(0) # end
     return r
 
 LEVELS = []
+LEVELS_DIR = [0]
 
 for m in MAP:
     LEVELS += map2bit(m)
+    LEVELS_DIR.append(len(LEVELS))
 
 save_game('gerion.bin', load_code('gerion.py'))
