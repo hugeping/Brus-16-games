@@ -190,7 +190,7 @@ def mblock(x, y):
 
 def lookup_obs(cx, cy, it):
     i = 0
-    while i < OBS_NR:
+    while i < OBS_NR*{OBS_SIZE}:
         if c2int(cx, cy) == (OBS[i]&0xff):
             if OBS[i+1] == it:
                 return OBS + i
