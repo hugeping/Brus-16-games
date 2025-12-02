@@ -21,7 +21,7 @@ FRAMES = 0
 PADS_MAP = {PADS_MAP}
 SPAWN_MAP = {SPAWN_MAP}
 RADAR_MAP = {RADAR_MAP}
-DOORS_MAP = {DOORS_MAP}
+OBS_MAP = {OBS_MAP}
 SPAWN_FRAME = 0
 PADS_NR = 0
 PADS_MAX = 0
@@ -40,8 +40,8 @@ HEROD = {HEROD}
 ALIEN = {ALIEN}
 ALIENS = {ALIENS}
 ALIENS_NR = 0
-DOORS = {DOORS}
-DOORS_NR = 0
+OBS = {OBS}
+OBS_NR = 0
 
 SPAWNS = {SPAWNS}
 LEVEL = 0
@@ -186,15 +186,22 @@ def mblockxy(x, y):
 def mblock(x, y):
     if inside(x, y) == 0:
         return 1
-    return mget(LEVEL, x, y) | mget(DOORS_MAP, x, y)
+    return mget(LEVEL, x, y) | mget(OBS_MAP, x, y)
+
+def lookup_obs(cx, cy, it):
+    i = 0
+    while i < OBS_NR:
+        if c2int(cx, cy) == (OBS[i]&0xff):
+            if OBS[i+1] == it:
+                return OBS + i
+            return 0
+        i += {OBS_SIZE}
+    return 0
 
 def lookup_door(cx, cy):
-    i = 0
-    while i < DOORS_NR:
-        if c2int(cx, cy) == (DOORS[i]&0xff):
-            return DOORS + i
-        i += 1
-    return 0
+    if mget(OBS_MAP, cx, cy) == 0:
+        return 0
+    return lookup_obs(cx, cy,  {ITEM_DOOR})
 
 def loadlev():
     BLINK_MODE = 0
@@ -220,14 +227,14 @@ def loadlev():
     ALIENS_NR = 0
     bzero(ALIENS, {ALIENS_SIZE})
 
-    DOORS_NR = 0
-    bzero(DOORS, {DOORS_MAX})
+    OBS_NR = 0
+    bzero(OBS, {OBS_MAX*OBS_SIZE})
 
     # items
     cb += 1
     bzero(PADS_MAP, {H})
     bzero(SPAWN_MAP, {H})
-    bzero(DOORS_MAP, {H})
+    bzero(OBS_MAP, {H})
     bzero(SPAWNS, {SPAWNS_MAX})
     PADS_NR = 0
     SPAWNS_NR = 0
@@ -255,14 +262,15 @@ def loadlev():
         elif it == {ITEM_ALIEN_BOSS}:
             new_alien(c2x(cx), c2y(cy))
             ALIENS[ALIENS_NR-1+2] |= {ALIEN_BOSS}
-        elif it == {ITEM_DOOR}:
-            mset(DOORS_MAP, cx, cy, 1)
-            DOORS[DOORS_NR] = c2int(cx, cy)
-            DOORS_NR += 1
-        elif it == {ITEM_DOOR_SECRET}:
-            mset(DOORS_MAP, cx, cy, 1)
-            DOORS[DOORS_NR] = c2int(cx, cy)|{DOOR_SECRET}
-            DOORS_NR += 1
+        else:
+            mset(OBS_MAP, cx, cy, 1)
+            fl = 0
+            if (it == {ITEM_DOOR_SECRET}):
+                fl = {DOOR_SECRET}
+                it = {ITEM_DOOR}
+            OBS[OBS_NR*{OBS_SIZE}] = c2int(cx, cy)|fl
+            OBS[OBS_NR*{OBS_SIZE}+1] = it
+            OBS_NR += 1
         cb += 1
 
     PADS_S = 0
@@ -325,14 +333,15 @@ def draw_laser(ptr):
 
 def upd_doors():
     i = 0
-    while i < DOORS_NR:
-        if bit(DOORS[i], {DOOR_DEAD}):
-            e = bit_gethi(DOORS[i], {DOOR_MASK}) + 1
+    while i < OBS_NR:
+        door = OBS+i*{OBS_SIZE}
+        if (door[1] == {ITEM_DOOR}) & bit(door[0], {DOOR_DEAD}):
+            e = bit_gethi(door[0], {DOOR_MASK}) + 1
             if e > 4:
-                if mclr(DOORS_MAP, int2cx(DOORS[i]), int2cy(DOORS[i])):
+                if mclr(OBS_MAP, int2cx(door[0]), int2cy(door[0])):
                     EXPLODE_MODE += 1
             else:
-                DOORS[i] = bit_sethi(DOORS[i], {DOOR_MASK}, e)
+                door[0] = bit_sethi(door[0], {DOOR_MASK}, e)
         i += 1
 
 def upd_laser():
@@ -343,10 +352,12 @@ def upd_laser():
         a += {ALIEN_SIZE}
 
     i = 0
-    while i < DOORS_NR:
-        DOORS[i] &= ~{DOOR_HIT}
-        if (LASER_X == -1) & not_bit(DOORS[i], {DOOR_DEAD}):
-            DOORS[i] = bit_sethi(DOORS[i], {DOOR_MASK}, 0)
+    while i < OBS_NR:
+        door = OBS + i*{OBS_SIZE}
+        if door[1] == {ITEM_DOOR}:
+            door[0] &= ~{DOOR_HIT}
+            if (LASER_X == -1) & not_bit(door[0], {DOOR_DEAD}):
+                door[0] = bit_sethi(door[0], {DOOR_MASK}, 0)
         i += 1
 
     if (HERO_DEAD > 0) | (abs(FRAMES-TELEPORT_FRAME) < 30):
@@ -392,7 +403,7 @@ def upd_laser():
                 a[2] = {ALIEN_DEAD | (ALIEN_HEALTH<<8)}
             break
 
-    if mgetxy(DOORS_MAP, ex, ey):
+    if lookup_door(x2c(ex), y2c(ey)) != 0:
         door = lookup_door(x2c(ex), y2c(ey))
         e = bit_gethi(door[0], {DOOR_MASK}) + 2
         door[0] |= {DOOR_HIT}
@@ -600,7 +611,7 @@ def draw_mrect(ptr, cx, cy, xoff, yoff):
         x = {TW//4}; y = {TH//4}; w = {TW//2}; h = {TH//2}
     elif mget(SPAWN_MAP, cx, cy):
         ptr[5] = rate_color({SPAWNCOL_RATE}, {SPAWNCOL1}, {SPAWNCOL2})
-    elif mget(DOORS_MAP, cx, cy):
+    elif lookup_door(cx, cy) != 0:
         door = lookup_door(cx, cy)
         if bit(door[0], {DOOR_DEAD}):
             ptr[5] = 0xff00
@@ -626,6 +637,8 @@ def draw_mrect(ptr, cx, cy, xoff, yoff):
             h ^= rnd()&1
             x ^= rnd()&1
             y ^= rnd()&1
+    elif mget(OBS_MAP, cx, cy) & (lookup_obs(cx, cy, {ITEM_REACTOR}) != 0):
+        ptr[5] = rate_color({SPAWNCOL_RATE}, {SPAWNCOL1}, {SPAWNCOL2})
     else:
         return ptr
 
