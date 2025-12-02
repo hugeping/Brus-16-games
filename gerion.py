@@ -13,6 +13,7 @@ def start():
 
 TITLE = {TITLE}
 ASTEROID = {ASTEROID}
+STARS= {STARS}
 HERO_DEAD = 0
 HERO_LDIRS = {HERO_LASER_DIR}
 DIRS = {DIRS}
@@ -1020,7 +1021,8 @@ def upd_aliens():
 
 def upd_hero():
     if HERO_DEAD > 0:
-        HERO_DEAD += 1
+        HERO_DEAD = min(HERO_DEAD + 1, 0x1000)
+
         if INP_A & (HERO_DEAD>100):
             kbd_clear()
             SCROLL_MODE = - 480
@@ -1188,36 +1190,40 @@ def zoomx(start, end, factor, bits):
         start += {RECT_SIZE}
 
 def draw_stars(ptr):
+    memcpy(ptr, STARS, {len(STARS)})
     i = 0
-    seed = random(1)
-    while i < 31:
-        seed = random(seed)
-        x = (seed&0x1ff) + 64
-        seed = random(seed)
-        y = seed&0x01ff
-        c = 128 + (seed&0xff)<<1
-        ptr = draw_rect(ptr, x, y, 1, 1, rgb(c, c, c))
-        i += 1
-    return ptr
+    while i < {len(STARS)}:
+        v = abs(16 - (((FRAMES+i)&0x1f)))
+        x = ptr[i+1]
+        y = ptr[i+2]
+
+        ptr[i+1] = x
+        ptr[i+2] = y-(v>>1)
+        ptr[i+3] = 1
+        ptr[i+4] = v
+
+        i += {RECT_SIZE}
+        ptr[i] = 1
+        ptr[i+1] = x-(v>>1)
+        ptr[i+2] = y
+        ptr[i+3] = v
+        ptr[i+4] = 1
+        i += {RECT_SIZE}
+
+    return ptr + {len(STARS)}
 
 def draw_title(ptr):
     ptr = draw_stars(ptr)
     memcpy(ptr, TITLE, {len(TITLE)})
-    zoomx(ptr, ptr + {len(TITLE)}, min((TITLE_MODE)>>2, 128), 7)
+    ptr[1] += 147
+    ptr[2] += 79
+    zoomx(ptr, ptr + {len(TITLE)}, min((TITLE_MODE), 128), 7)
     ptr += {len(TITLE)}
     memcpy(ptr, ASTEROID, {len(ASTEROID)})
-    ptr[1] += 295
-    ptr[2] += max(480 - (TITLE_MODE>>2), 352)
-    y = ptr[2]
-    if y <= 352:
-        if rate(7):
-            ptr[2] -= 1
-        else:
-            ptr[2] += 1
+    ptr[1] += 306
+    ptr[2] += 283
     ptr += {len(ASTEROID)}
-    if rate(6) & rate(4):
-        ptr = draw_rect(ptr, 294, y+19, 4, 4, {rgb(0, 220, 0)} + rgb(0, (FRAMES&0x7)<<1, 0))
-    return ptr + {len(ASTEROID)}
+    return ptr
 
 def zoom_mode():
     target_z = {2 << ZOOM_BITS}
