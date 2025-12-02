@@ -183,6 +183,7 @@ ITEM_ALIEN = 0x0200
 ITEM_DOOR  = 0x0300
 ITEM_ALIEN_BOSS = 0x0400
 ITEM_DOOR_SECRET  = 0x0500
+ITEM_REACTOR = 0x0600
 ITEM_SPAWN = 0xff00
 ITEM_MASK  = 0xff00
 
@@ -206,6 +207,23 @@ def debug(text):
     return ';'.join(code)
 
 MAP = (
+'''
+###############
+#@           !#
+# ##### ##### #
+# ##### ##### #
+#      R      #
+# ##### #######
+# ##### #######
+#             #
+######   ######
+####### #######
+####### #######
+####### #######
+####### #######
+#             #
+###############''',
+
 '''
 ###############
 #@   |   |   *#
@@ -324,6 +342,8 @@ def map2bit(t):
                 items.append((x, y, ITEM_DOOR))
             elif i == '?':
                 items.append((x, y, ITEM_DOOR_SECRET))
+            elif i == 'R':
+                items.append((x, y, ITEM_REACTOR))
             x += 1
         r.append(c>>1)
         y += 1

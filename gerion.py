@@ -353,7 +353,7 @@ def upd_laser():
         LASER_X = -1
         return
 
-    if INP_STATE[{KEY_A}] == 0:
+    if (INP_STATE[{KEY_A}] == 0) | (INP_C == 1):
         if (INP_X == 0) & (INP_Y == 0):
             POWER_DRAW = max(0, POWER_DRAW - {POWER_CHARGE})
         else:
@@ -478,7 +478,7 @@ def draw_alien(ptr, a):
     while i < {len(ALIEN)//RECT_SIZE}:
         col = ALIEN_COLS[i]
         if bit(a[2], {ALIEN_BOSS}):
-            col |= (203 << 11)
+            col = rate_color(3, {rgb(106,50,159)}, {rgb(82,32,129)})
         f = i*{RECT_SIZE}
         if bit(a[2],{ALIEN_HIT}):
             col = 0xffff
@@ -502,6 +502,10 @@ def draw_alien(ptr, a):
     else:
         ptr[1*{RECT_SIZE}+3] = LEGS[n]
         ptr[1*{RECT_SIZE}+1] = 1 + (LEGS[n]*2)
+
+    if bit(a[2], {ALIEN_BOSS}) & not_bit(a[2],{ALIEN_HIT}):
+        ptr[1*{RECT_SIZE}+5] = { rgb(15, 255, 80) }
+
     ptr[2*{RECT_SIZE}+4] = LEGS[n]
     ptr[3*{RECT_SIZE}+4] = LEGS[(n+2)&0x7]
     ptr[4*{RECT_SIZE}+4] = LEGS[(n+5)&0x7]
@@ -587,7 +591,7 @@ def draw_mrect(ptr, cx, cy, xoff, yoff):
     elif mget(LEVEL, cx, cy):
         ptr[5] = {FGCOL}
     elif atexit(cx, cy):
-        if PADS_NR <= 0:
+        if exit_activated():
             ptr[5] = rate_color({EXITCOL_RATE}, {EXITCOL3}, {EXITCOL4})
         else:
             ptr[5] = rate_color({EXITCOL_RATE}, {EXITCOL1}, {EXITCOL2})
@@ -937,17 +941,24 @@ def upd_alien(a):
         ttl = 8
 
     t = 4
+    if get_alien_dir()&1:
+        d = 1
+    else:
+        d = -1
+
     while (aligned) & (t > 0) & (alien_can_move(a, dir) == 0):
-        dir += 1
+        dir += d
         dir &= 0x3
         t -= 1
 
     dl = (dir + 1)&0x3
     dr = (dir + 3)&0x3
-    if (get_alien_dir() & 1):
+    if (rnd() & 1):
         {mswap("dl", "dr")}
-
-    if (((ttl == 0)|bit(a[2], {ALIEN_HIT})) & aligned & (t > 0)):
+    escape = bit(a[2], {ALIEN_HIT})
+    if max(abs(a[0]-PX), abs(a[1]-PY)) < 2*{TW}:
+        escape = 0
+    if (((ttl == 0)|escape)) & aligned & (t > 0):
         if (alien_can_move(a, dl) == 1):
             dir = dl
             ttl = 4
@@ -1009,7 +1020,7 @@ def upd_hero():
         else:
             RADAR_MODE -= 8
 
-    if INP_C:
+    if INP_C & INP_A:
         kbd_clear()
         LEVEL_NR += 1
         NEXT_LEVEL = LEVELS + LEVELS_DIR[LEVEL_NR]
@@ -1041,7 +1052,7 @@ def upd_hero():
     if mclrxy(PADS_MAP, PX, PY):
         PADS_NR -= 1
         POWER_DRAW = 0
-    if (PADS_NR == 0) & atexitxy(PX, PY):
+    if exit_activated() & atexitxy(PX, PY):
         LEVEL_NR += 1
         NEXT_LEVEL = LEVELS + LEVELS_DIR[LEVEL_NR]
         SCROLL_MODE = -480
@@ -1120,6 +1131,9 @@ def screen_off(ox, oy):
             ptr[2] += oy
         ptr += {RECT_SIZE}
 
+def exit_activated():
+    return (PADS_NR == 0) & (PADS_MAX > 0)
+
 def draw_status(ptr):
     if SCROLL_MODE != 0:
         return ptr
@@ -1128,7 +1142,7 @@ def draw_status(ptr):
 
     ptr = draw_rect(ptr, 640-6, 0,
         6, l, rgb(min(128+(l>>2), 255), 32, 0))
-    if PADS_NR == 0:
+    if exit_activated():
         l = 480
     else:
         l = ((PADS_MAX - PADS_NR)*480) >> PADS_S
