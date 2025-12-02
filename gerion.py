@@ -1220,9 +1220,9 @@ def draw_title(ptr):
     return ptr + {len(ASTEROID)}
 
 def zoom_mode():
-    target_z = {1 << ZOOM_BITS}
-    if (INP_X != 0) | (INP_Y != 0):
-        target_z = {2 << ZOOM_BITS}
+    target_z = {2 << ZOOM_BITS}
+    if ((RADAR_MODE != 0) | INP_STATE[{KEY_B}]):
+        target_z = {1 << ZOOM_BITS}
     if current_zoom < target_z:
         current_zoom += 1
     if current_zoom > target_z:
@@ -1264,7 +1264,7 @@ def draw():
         ptr = draw_rect(ptr, 0, 480 - RADAR_MODE, 640, 1, rate_color(3, rgb(255,0,0), rgb(128, 128, 128)))
         ptr = draw_radar(ptr, 480 - RADAR_MODE)
 
-#    zoom_mode()
+    zoom_mode()
 
     if SCROLL_MODE < 0:
         screen_off((640-{W*TW})>>1, -SCROLL_MODE-480)
