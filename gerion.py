@@ -620,10 +620,12 @@ def item_rect(ptr, x, y, w, h):
     if hit2(x, y, w, h, ptr[1], ptr[2], ptr[3], ptr[4]) == 0:
         return 0
 
-    ptr[1] = max(ptr[1], x)
-    ptr[2] = max(ptr[2], y)
-    ptr[3] = min(ptr[3]-x, x+w-ptr[1])
-    ptr[4] = min(ptr[4]-y, y+h-ptr[2])
+    nx = max(ptr[1], x)
+    ny = max(ptr[2], y)
+    ptr[3] = max(1, min(ptr[1] + ptr[3], x + w) - nx)
+    ptr[4] = max(1, min(ptr[2] + ptr[4], y + h) - ny)
+    ptr[1] = nx
+    ptr[2] = ny
 
     return 1
 
@@ -716,6 +718,7 @@ def draw_mrect(ptr, cx, cy, xoff, yoff):
             y += 0xf - (rnd() & 0x1f)
             w += 0xf - (rnd() & 0x1f)
             h += 0xf - (rnd() & 0x1f)
+
     else:
         return ptr
 
