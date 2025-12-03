@@ -224,6 +224,7 @@ def loadlev():
     RADAR_MODE = 0
     ALIEN_DIR = 0
     HERO_DEAD = 0
+    HERO_DIR = 3
 
     cb = LEVEL + {H}
 
