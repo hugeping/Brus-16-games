@@ -355,10 +355,8 @@ def upd_obs():
         obs = OBS+i*{OBS_SIZE}
         if bit(obs[0], {OBS_DEAD}):
             e = bit_gethi(obs[0], {OBS_MASK}) + 1
-            m = 8
-            if obs[1] == {ITEM_DOOR}:
-                m = 4
-            elif obs[1] == {ITEM_REACTOR}:
+            m = 4
+            if obs[1] == {ITEM_REACTOR}:
                 m = 0x1f
             if e > m:
                 if mclr(OBS_MAP, int2cx(obs[0]), int2cy(obs[0])):
@@ -551,20 +549,22 @@ def draw_alien(ptr, a):
         return ptr + {len(ALIEN)}
 
     n = (FRAMES>>2)&0x7
+    ptr += {RECT_SIZE}
     if a[2]&{ALIEN_SIGHT}:
-        ptr[1*{RECT_SIZE}+1] = 8
-        ptr[1*{RECT_SIZE}+3] = 7
+        ptr[1] = 8
+        ptr[3] = 7
     else:
-        ptr[1*{RECT_SIZE}+3] = LEGS[n]
-        ptr[1*{RECT_SIZE}+1] = 1 + (LEGS[n]*2)
+        ptr[3] = LEGS[n]
+        ptr[1] = 1 + (LEGS[n]*2)
 
     if bit(a[2], {ALIEN_BOSS}) & not_bit(a[2],{ALIEN_HIT}):
-        ptr[1*{RECT_SIZE}+5] = { rgb(15, 255, 80) }
-
-    ptr[2*{RECT_SIZE}+4] = LEGS[n]
-    ptr[3*{RECT_SIZE}+4] = LEGS[(n+2)&0x7]
-    ptr[4*{RECT_SIZE}+4] = LEGS[(n+5)&0x7]
-
+        ptr[5] = { rgb(15, 255, 80) }
+    ptr += {RECT_SIZE}
+    ptr[4] = LEGS[n]
+    ptr += {RECT_SIZE}
+    ptr[4] = LEGS[(n+2)&0x7]
+    ptr += {RECT_SIZE}
+    ptr[4] = LEGS[(n+5)&0x7]
     return ptr + {len(ALIEN)}
 
 def draw_hero(ptr, cx, cy):
@@ -576,9 +576,12 @@ def draw_hero(ptr, cx, cy):
         memcpy(ptr, HEROU, {len(HERO)})
     else:
         memcpy(ptr, HEROD, {len(HERO)})
+
     if (INP_X != 0) | (INP_Y != 0):
-        ptr[4*{RECT_SIZE}+4] += 1 - ((FRAMES >> 2)&0x3)
-        ptr[5*{RECT_SIZE}+4] += -1 + ((FRAMES >> 2)&0x3)
+        lo = (FRAMES >> 2)&0x3
+        ptr[4*{RECT_SIZE}+4] += 1 - lo
+        ptr[5*{RECT_SIZE}+4] += -1 + lo
+
     ptr[1] = cx - HERO_C[0]
     ptr[2] = cy - HERO_C[1]
 
