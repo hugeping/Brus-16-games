@@ -3,17 +3,20 @@ def start():
 
 #def debug_val(x):
 #    d = (x >> 12) & 15
-#    poke(-1, d + 48 + (d > 9) * 7)
-#    d = (x >> 8) & 15
-#    poke(-1, d + 48 + (d > 9) * 7)
-#    d = (x >> 4) & 15
-#    poke(-1, d + 48 + (d > 9) * 7)
-#    d = x & 15
-#    poke(-1, d + 48 + (d > 9) * 7)
+#   poke(-1, d + 48 + (d > 9) * 7)
+#   d = (x >> 8) & 15
+#   poke(-1, d + 48 + (d > 9) * 7)
+#   d = (x >> 4) & 15
+#   poke(-1, d + 48 + (d > 9) * 7)
+#   d = x & 15
+#   poke(-1, d + 48 + (d > 9) * 7)
+#   poke(-1, 10)
 
 TITLE = {TITLE}
 ASTEROID = {ASTEROID}
 STARS= {STARS}
+SHAKE_MODE = 0
+ENDING_MODE = 0
 HERO_DEAD = 0
 HERO_LDIRS = {HERO_LASER_DIR}
 DIRS = {DIRS}
@@ -204,7 +207,15 @@ def lookup_door(cx, cy):
         return 0
     return lookup_obs(cx, cy,  {ITEM_DOOR})
 
+def lookup_reactor(cx, cy):
+    if mget(OBS_MAP, cx, cy) == 0:
+        return 0
+    return lookup_obs(cx, cy,  {ITEM_REACTOR})
+
 def loadlev():
+    R_NR = 0
+    SHAKE_MODE = 0
+    ENDING_MODE = 0
     BLINK_MODE = 0
     EXPLODE_MODE = 0
     NEXT_LEVEL = LEVEL
@@ -269,6 +280,8 @@ def loadlev():
             if (it == {ITEM_DOOR_SECRET}):
                 fl = {DOOR_SECRET}
                 it = {ITEM_DOOR}
+            elif (it == {ITEM_REACTOR}):
+                R_NR += 1
             OBS[OBS_NR*{OBS_SIZE}] = c2int(cx, cy)|fl
             OBS[OBS_NR*{OBS_SIZE}+1] = it
             OBS_NR += 1
@@ -332,18 +345,42 @@ def draw_laser(ptr):
 
     return draw_rect(ptr, x, y, abs(ex - x), abs(ey - y), color)
 
-def upd_doors():
+def upd_obs():
     i = 0
     while i < OBS_NR:
-        door = OBS+i*{OBS_SIZE}
-        if (door[1] == {ITEM_DOOR}) & bit(door[0], {DOOR_DEAD}):
-            e = bit_gethi(door[0], {DOOR_MASK}) + 1
-            if e > 4:
-                if mclr(OBS_MAP, int2cx(door[0]), int2cy(door[0])):
+        obs = OBS+i*{OBS_SIZE}
+        if bit(obs[0], {OBS_DEAD}):
+            e = bit_gethi(obs[0], {OBS_MASK}) + 1
+            m = 8
+            if obs[1] == {ITEM_DOOR}:
+                m = 4
+            elif obs[1] == {ITEM_REACTOR}:
+                m = 0x1f
+            if e > m:
+                if mclr(OBS_MAP, int2cx(obs[0]), int2cy(obs[0])):
                     EXPLODE_MODE += 1
+                    if obs[1] == {ITEM_REACTOR}:
+                        R_NR -= 1
+                        if R_NR == 0:
+                            ENDING_MODE = 1
+                            return
             else:
-                door[0] = bit_sethi(door[0], {DOOR_MASK}, e)
+                obs[0] = bit_sethi(obs[0], {OBS_MASK}, e)
+        elif obs[1] == {ITEM_REACTOR}:
+            e = max(0, bit_gethi(obs[0], {OBS_MASK}) - rate_trigger(2))
+#            debug_val(e)
+            SHAKE_MODE += (e > 0xf)
+            obs[0] = bit_sethi(obs[0], {OBS_MASK}, e)
         i += 1
+
+def obs_laser(obs, hit, health):
+    e = bit_gethi(obs[0], {OBS_MASK}) + hit
+    obs[0] |= {OBS_HIT}
+    if (e >= health) & not_bit(obs[0], {OBS_DEAD}):
+        obs[0] = bit_sethi(obs[0], {OBS_MASK}, 0)
+        obs[0] |= {OBS_DEAD}
+    elif not_bit(obs[0], {OBS_DEAD}):
+        obs[0] = bit_sethi(obs[0], {OBS_MASK}, e)
 
 def upd_laser():
     a = ALIENS
@@ -354,11 +391,12 @@ def upd_laser():
 
     i = 0
     while i < OBS_NR:
-        door = OBS + i*{OBS_SIZE}
-        if door[1] == {ITEM_DOOR}:
-            door[0] &= ~{DOOR_HIT}
-            if (LASER_X == -1) & not_bit(door[0], {DOOR_DEAD}):
-                door[0] = bit_sethi(door[0], {DOOR_MASK}, 0)
+        obs = OBS + i*{OBS_SIZE}
+        obs[0] &= ~{OBS_HIT}
+
+        if obs[1] == {ITEM_DOOR}:
+            if (LASER_X == -1) & not_bit(obs[0], {OBS_DEAD}):
+                obs[0] = bit_sethi(obs[0], {OBS_MASK}, 0)
         i += 1
 
     if (HERO_DEAD > 0) | (abs(FRAMES-TELEPORT_FRAME) < 30):
@@ -406,13 +444,11 @@ def upd_laser():
 
     if lookup_door(x2c(ex), y2c(ey)) != 0:
         door = lookup_door(x2c(ex), y2c(ey))
-        e = bit_gethi(door[0], {DOOR_MASK}) + 2
-        door[0] |= {DOOR_HIT}
-        if (e >= {DOOR_HEALTH}) & not_bit(door[0], {DOOR_DEAD}):
-            door[0] = bit_sethi(door[0], {DOOR_MASK}, 0)
-            door[0] |= {DOOR_DEAD}
-        elif not_bit(door[0], {DOOR_DEAD}):
-            door[0] = bit_sethi(door[0], {DOOR_MASK}, e)
+        obs_laser(door, 2, {DOOR_HEALTH})
+
+    elif lookup_reactor(x2c(ex), y2c(ey)) != 0:
+        r = lookup_reactor(x2c(ex), y2c(ey))
+        obs_laser(r, 1, {R_HEALTH})
 
     ex = max(0, ex)
     ey = max(0, ey)
@@ -461,15 +497,15 @@ def alien_light_cell(a):
     tx = a[0] >> {TWS}
     ty = a[1] >> {THS}
 
-    return light_ray(px, py, tx, ty, {VIEW_R}) | \
-        light_ray(px+1, py, tx, ty, {VIEW_R}) | \
-        light_ray(px-1, py, tx, ty, {VIEW_R}) | \
-        light_ray(px, py-1, tx, ty, {VIEW_R}) | \
-        light_ray(px, py+1, tx, ty, {VIEW_R}) | \
-        light_ray(px+1, py+1, tx, ty, {VIEW_R}) | \
-        light_ray(px-1, py+1, tx, ty, {VIEW_R}) | \
-        light_ray(px-1, py-1, tx, ty, {VIEW_R}) | \
-        light_ray(px+1, py-1, tx, ty, {VIEW_R})
+    return (light_ray(px, py, tx, ty, {VIEW_R}) |
+        light_ray(px+1, py, tx, ty, {VIEW_R}) |
+        light_ray(px-1, py, tx, ty, {VIEW_R}) |
+        light_ray(px, py-1, tx, ty, {VIEW_R}) |
+        light_ray(px, py+1, tx, ty, {VIEW_R}) |
+        light_ray(px+1, py+1, tx, ty, {VIEW_R}) |
+        light_ray(px-1, py+1, tx, ty, {VIEW_R}) |
+        light_ray(px-1, py-1, tx, ty, {VIEW_R}) |
+        light_ray(px+1, py-1, tx, ty, {VIEW_R}))
 
 def alien_visible(a):
     return bit(a[2], {ALIEN_HIT}) | alien_light_cell(a)
@@ -614,9 +650,9 @@ def draw_mrect(ptr, cx, cy, xoff, yoff):
         ptr[5] = rate_color({SPAWNCOL_RATE}, {SPAWNCOL1}, {SPAWNCOL2})
     elif lookup_door(cx, cy) != 0:
         door = lookup_door(cx, cy)
-        if bit(door[0], {DOOR_DEAD}):
+        if bit(door[0], {OBS_DEAD}):
             ptr[5] = 0xff00
-        elif bit(door[0], {DOOR_HIT}):
+        elif bit(door[0], {OBS_HIT}):
             ptr[5] = 0xffff
         elif bit(door[0], {DOOR_SECRET}):
             ptr[5] = {FGCOL}
@@ -628,18 +664,38 @@ def draw_mrect(ptr, cx, cy, xoff, yoff):
             else:
                 x = {TW//2-8}; y = 1; w = 16; h = {TH-2}
 
-        if bit(door[0], {DOOR_DEAD}):
+        if bit(door[0], {OBS_DEAD}):
             x += 7 - (rnd() & 0xf)
             y += 7 - (rnd() & 0xf)
             w += 7 - (rnd() & 0xf)
             h += 7 - (rnd() & 0xf)
-        elif bit(door[0], {DOOR_HIT}):
+        elif bit(door[0], {OBS_HIT}):
             w ^= rnd()&1
             h ^= rnd()&1
             x ^= rnd()&1
             y ^= rnd()&1
     elif mget(OBS_MAP, cx, cy) & (lookup_obs(cx, cy, {ITEM_REACTOR}) != 0):
-        ptr[5] = rate_color({SPAWNCOL_RATE}, {SPAWNCOL1}, {SPAWNCOL2})
+        r = lookup_reactor(cx, cy)
+
+        w = 16
+        h = 16
+        x = abs(0xf-((FRAMES+8)&0x1f))
+        y = abs(0xf-(FRAMES&0x1f))
+
+        if bit(r[0], {OBS_HIT}):
+            ptr[5] = 0xffff
+            w = 16 #(FRAMES&{TWM//2-1})*2
+            h = 16 # (FRAMES&{TWM//2-1})*2
+            x += 7 - (rnd() & 0xf)
+            y += 7 - (rnd() & 0xf)
+        else:
+            ptr[5] = rate_color({SPAWNCOL_RATE}, {SPAWNCOL1}, {SPAWNCOL2})
+
+        if bit(r[0], {OBS_DEAD}):
+            x += 0xf - (rnd() & 0x1f)
+            y += 0xf - (rnd() & 0x1f)
+            w += 0xf - (rnd() & 0x1f)
+            h += 0xf - (rnd() & 0x1f)
     else:
         return ptr
 
@@ -1094,6 +1150,7 @@ TITLE_MODE = 0
 def update():
     kbd_proc()
     EXPLODE_MODE = 0
+    SHAKE_MODE = 0
     if SCROLL_MODE > 0:
         SCROLL_MODE -= 16
         return
@@ -1111,18 +1168,22 @@ def update():
             kbd_clear()
             SCROLL_MODE = -480
         return
+    elif ENDING_MODE > 0:
+        ENDING_MODE = min(ENDING_MODE+1, 10000)
+        return
 
     if BLINK_MODE > 0:
         BLINK_MODE -= 1
 #    else:
 #        BLINK_MODE = rate_trigger(7+(rnd()&0xf)) * (6+(rnd()&0xf))
     upd_laser()
-    upd_doors()
+    upd_obs()
     upd_aliens()
     upd_hero()
 
 ALIEN_COLS = [0,0,0,0,0]
 SCROLL_MODE = 0
+R_NR = 0
 
 def setup():
     TITLE_MODE = 1
@@ -1212,6 +1273,45 @@ def draw_stars(ptr):
 
     return ptr + {len(STARS)}
 
+def draw_ending(ptr):
+    frame1 = 200
+    if ENDING_MODE > frame1:
+        draw_rect(ptr, 0, 0, 640, 480, 0xffff)
+        if ENDING_MODE > frame1+64:
+            v = 240 - min(ENDING_MODE - (frame1+64), 119)*2
+            ptr[2] = 240-v
+            ptr[4] = v*2
+            if ENDING_MODE > frame1+64+120:
+                c = max(0, 255 - (ENDING_MODE-(frame1+64+120)))
+                ptr[5] = rgb(c, c, c)
+                v = 320 - min(ENDING_MODE - (frame1+64+120), 159)*2
+                ptr[1] = 320 - v
+                ptr[3] = v*2
+            if (ENDING_MODE > frame1+64+120+160+128):
+                setup()
+        return ptr + {RECT_SIZE}
+    ptr = draw_stars(ptr)
+    memcpy(ptr, ASTEROID, {len(ASTEROID)})
+    ptr[1] += 306
+    ptr[2] += 183
+    eptr = ptr + {len(ASTEROID)}
+    a = (min(ENDING_MODE, 128)>>2)
+    chance = (rnd()&0x1f) <= a
+    if ENDING_MODE > frame1+32:
+        pass
+    elif ENDING_MODE > 64:
+        ptr[1] ^= rnd()&1
+        ptr[2] ^= rnd()&1
+    while ptr < eptr:
+        if ENDING_MODE > frame1:
+          v = min(ENDING_MODE - 128, 31)*8
+          ptr[5] = rgb(v, v, v)
+        elif chance:
+          ptr[5] = 0xffff
+        ptr += {RECT_SIZE}
+    ptr = eptr
+    return ptr
+
 def draw_title(ptr):
     ptr = draw_stars(ptr)
     memcpy(ptr, TITLE, {len(TITLE)})
@@ -1227,7 +1327,7 @@ def draw_title(ptr):
 
 def zoom_mode():
     target_z = {2 << ZOOM_BITS}
-    if ((RADAR_MODE != 0) | INP_STATE[{KEY_B}]):
+    if ((RADAR_MODE != 0) | INP_STATE[{KEY_B}]) | (HERO_DEAD > 0):
         target_z = {1 << ZOOM_BITS}
     if current_zoom < target_z:
         current_zoom += 1
@@ -1249,6 +1349,9 @@ def draw():
         if SCROLL_MODE < 0:
             screen_off(0, -SCROLL_MODE-480)
         return
+    elif ENDING_MODE:
+        ptr = draw_ending(ptr)
+        return
 
     if SCROLL_MODE == 0:
         ptr = draw_rect(ptr, 0, 0, 640, 480, {BGCOL1})
@@ -1266,19 +1369,21 @@ def draw():
     ptr = draw_aliens(ptr)
 
     if (RADAR_MODE > 0):
-        radar = ptr
-        ptr = draw_rect(ptr, 0, 480 - RADAR_MODE, 640, 1, rate_color(3, rgb(255,0,0), rgb(128, 128, 128)))
         ptr = draw_radar(ptr, 480 - RADAR_MODE)
 
     zoom_mode()
-
+    dx = 0
+    dy = 0
+    if SHAKE_MODE > 0:
+        dx = 0x1 - (rnd()&0x3)
+        dy = 0x1 - (rnd()&0x3)
     if SCROLL_MODE < 0:
-        screen_off((640-{W*TW})>>1, -SCROLL_MODE-480)
+        screen_off(((640-{W*TW})>>1)+dx, -SCROLL_MODE-480+dy)
     else:
-        screen_off((640-{W*TW})>>1, SCROLL_MODE)
+        screen_off(((640-{W*TW})>>1)+dx, SCROLL_MODE+dy)
 
     if (RADAR_MODE > 0):
-        radar[1] = 0
+        ptr = draw_rect(ptr, 0, 480 - RADAR_MODE, 640, 1, rate_color(3, rgb(255,0,0), rgb(128, 128, 128)))
 
     ptr = draw_status(ptr)
 

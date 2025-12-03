@@ -28,7 +28,7 @@ POWER_DRAW_MAX = 480
 LASER_COST = 16
 RADAR_COST = 9
 POWER_CHARGE = 8
-POWER_CHARGE_MOVE = POWER_CHARGE//5
+POWER_CHARGE_MOVE = 4 #POWER_CHARGE//5
 
 # center
 HERO_C = [4, 6]
@@ -253,11 +253,14 @@ ALIEN_BOSS  = 0x0004
 ALIEN_MASK =  0x1F00
 ALIEN_HEALTH = 0x16
 
-DOOR_HIT    = 0x8000
-DOOR_DEAD   = 0x4000
+OBS_HIT    = 0x8000
+OBS_DEAD   = 0x4000
+OBS_MASK   = 0x1F00
+
 DOOR_SECRET = 0x2000
-DOOR_MASK   = 0x1F00
 DOOR_HEALTH = 0x19
+
+R_HEALTH = 0x1f
 
 def debug(text):
     code = []
@@ -269,7 +272,7 @@ MAP = (
 
 '''
 ###############
-#@   |   |   *#
+#@  R|   |   *#
 ####### #######
 ####### #######
 ####### #######
