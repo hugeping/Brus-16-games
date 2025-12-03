@@ -1135,7 +1135,8 @@ def upd_hero():
         kbd_clear()
         LEVEL_NR += 1
         if LEVEL_NR >= {LEVELS_NR}:
-            LEVEL_NR = 0
+            setup()
+            return
         NEXT_LEVEL = LEVELS + LEVELS_DIR[LEVEL_NR]
         SCROLL_MODE = -480
         return
