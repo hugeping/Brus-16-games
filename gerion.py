@@ -1,16 +1,16 @@
 def start():
     main()
 
-def debug_val(x):
-   d = (x >> 12) & 15
-   poke(-1, d + 48 + (d > 9) * 7)
-   d = (x >> 8) & 15
-   poke(-1, d + 48 + (d > 9) * 7)
-   d = (x >> 4) & 15
-   poke(-1, d + 48 + (d > 9) * 7)
-   d = x & 15
-   poke(-1, d + 48 + (d > 9) * 7)
-   poke(-1, 10)
+#def debug_val(x):
+#   d = (x >> 12) & 15
+#   poke(-1, d + 48 + (d > 9) * 7)
+#   d = (x >> 8) & 15
+#   poke(-1, d + 48 + (d > 9) * 7)
+#   d = (x >> 4) & 15
+#   poke(-1, d + 48 + (d > 9) * 7)
+#   d = x & 15
+#   poke(-1, d + 48 + (d > 9) * 7)
+#   poke(-1, 10)
 
 TITLE = {TITLE}
 ASTEROID = {ASTEROID}
