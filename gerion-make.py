@@ -34,6 +34,7 @@ POWER_CHARGE_MOVE = 4 #POWER_CHARGE//5
 HERO_C = [4, 6]
 
 RADAR_RATE = 5
+LASERS_RATE = 6
 
 BGCOL1 = rgb(50, 0, 80)
 BGCOL2 = rgb(100, 0, 130)
@@ -234,6 +235,7 @@ H = 15
 
 PADS_MAP = [0]*H
 SPAWN_MAP = [0]*H
+LASERS_MAP = [0]*H
 RADAR_MAP = [0]*H
 OBS_MAP = [0]*H
 
@@ -243,6 +245,7 @@ ITEM_DOOR  = 0x0300
 ITEM_ALIEN_BOSS = 0x0400
 ITEM_DOOR_SECRET  = 0x0500
 ITEM_REACTOR = 0x0600
+ITEM_LASER = 0x0700
 ITEM_SPAWN = 0xff00
 ITEM_MASK  = 0xff00
 
@@ -268,29 +271,43 @@ def debug(text):
         code.append(f'poke(-1, {ord(c)})')
     return ';'.join(code)
 
+# # - wall
+# @ - hero
+# E - exit
+# % - door
+# | - vlaser
+# - - hlaser
+# ? - secret door
+# * - power cell
+# $ - alien
+# ! - boss alien
+# & - spawn
+# R - reactor
+# / - laser
+
 MAP = (
 
 '''
 ###############
-#@  R|   |   *#
+#@   %   %   *#
 ####### #######
 ####### #######
 ####### #######
 ####### #######
 ######   ######
-#$  |  E  |  *#
+#$  %  E  %  *#
 ######   ######
 ####### #######
 ####### #######
 ####### #######
 ####### #######
-#*   |   |   *#
+#*   %   %   *#
 ###############''',
 
 '''
 ###############
 #@           $#
-# ###-#####-###
+# ###%#####%###
 # ##$* ### *$##
 # #############
 # #############
@@ -310,7 +327,7 @@ MAP = (
 # ########### #
 # ###*   *### #
 # ##### ##### #
-# #####-##### #
+# #####%##### #
 # ####   #### #
 #      E      #
 # ####   #### #
@@ -360,9 +377,9 @@ MAP = (
 ###############
 #@           !#
 # ##### ##### #
-# ##### ##### #
-#      R      #
-# ##### #######
+# #####?##### #
+#     ?R?     #
+# #####?#######
 # ##### #######
 #             #
 ######   ######
@@ -401,12 +418,14 @@ def map2bit(t):
                 items.append((x, y, ITEM_ALIEN))
             elif i == '!':
                 items.append((x, y, ITEM_ALIEN_BOSS))
-            elif i == '-' or i == '|':
+            elif i == '%':
                 items.append((x, y, ITEM_DOOR))
             elif i == '?':
                 items.append((x, y, ITEM_DOOR_SECRET))
             elif i == 'R':
                 items.append((x, y, ITEM_REACTOR))
+            elif i == '/':
+                items.append((x, y, ITEM_LASER))
             x += 1
         r.append(c>>1)
         y += 1

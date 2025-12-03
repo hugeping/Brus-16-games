@@ -1,16 +1,16 @@
 def start():
     main()
 
-#def debug_val(x):
-#    d = (x >> 12) & 15
-#   poke(-1, d + 48 + (d > 9) * 7)
-#   d = (x >> 8) & 15
-#   poke(-1, d + 48 + (d > 9) * 7)
-#   d = (x >> 4) & 15
-#   poke(-1, d + 48 + (d > 9) * 7)
-#   d = x & 15
-#   poke(-1, d + 48 + (d > 9) * 7)
-#   poke(-1, 10)
+def debug_val(x):
+   d = (x >> 12) & 15
+   poke(-1, d + 48 + (d > 9) * 7)
+   d = (x >> 8) & 15
+   poke(-1, d + 48 + (d > 9) * 7)
+   d = (x >> 4) & 15
+   poke(-1, d + 48 + (d > 9) * 7)
+   d = x & 15
+   poke(-1, d + 48 + (d > 9) * 7)
+   poke(-1, 10)
 
 TITLE = {TITLE}
 ASTEROID = {ASTEROID}
@@ -24,6 +24,7 @@ HERO_C = {HERO_C}
 FRAMES = 0
 PADS_MAP = {PADS_MAP}
 SPAWN_MAP = {SPAWN_MAP}
+LASERS_MAP = {LASERS_MAP}
 RADAR_MAP = {RADAR_MAP}
 OBS_MAP = {OBS_MAP}
 SPAWN_FRAME = 0
@@ -246,6 +247,7 @@ def loadlev():
     cb += 1
     bzero(PADS_MAP, {H})
     bzero(SPAWN_MAP, {H})
+    bzero(LASERS_MAP, {H})
     bzero(OBS_MAP, {H})
     bzero(SPAWNS, {SPAWNS_MAX})
     PADS_NR = 0
@@ -274,6 +276,8 @@ def loadlev():
         elif it == {ITEM_ALIEN_BOSS}:
             new_alien(c2x(cx), c2y(cy))
             ALIENS[ALIENS_NR-1+2] |= {ALIEN_BOSS}
+        elif it == {ITEM_LASER}:
+            mset(LASERS_MAP, cx, cy, 1)
         else:
             mset(OBS_MAP, cx, cy, 1)
             fl = 0
@@ -382,6 +386,18 @@ def obs_laser(obs, hit, health):
     elif not_bit(obs[0], {OBS_DEAD}):
         obs[0] = bit_sethi(obs[0], {OBS_MASK}, e)
 
+def alien_hit_laser(a):
+    e = bit_gethi(a[2], {ALIEN_MASK})
+    a[2] |= {ALIEN_HIT}
+    if (e > 0) & not_bit(a[2], {ALIEN_DEAD}):
+        if bit(a[2],{ALIEN_BOSS}):
+            e -= rate_trigger(3)
+        else:
+            e -= 1
+        a[2] = bit_sethi(a[2], {ALIEN_MASK}, e)
+    elif not_bit(a[2], {ALIEN_DEAD}):
+        a[2] = {ALIEN_DEAD | (ALIEN_HEALTH<<8)}
+
 def upd_laser():
     a = ALIENS
     ae = ALIENS + {ALIENS_SIZE}
@@ -430,16 +446,7 @@ def upd_laser():
         ey += dy
         a = scan_alien(ex, ey, 0)
         if a != 0:
-            e = bit_gethi(a[2], {ALIEN_MASK})
-            a[2] |= {ALIEN_HIT}
-            if (e > 0) & not_bit(a[2], {ALIEN_DEAD}):
-                if bit(a[2],{ALIEN_BOSS}):
-                    e -= rate_trigger(3)
-                else:
-                    e -= 1
-                a[2] = bit_sethi(a[2], {ALIEN_MASK}, e)
-            elif not_bit(a[2], {ALIEN_DEAD}):
-                a[2] = {ALIEN_DEAD | (ALIEN_HEALTH<<8)}
+            alien_hit_laser(a)
             break
 
     if lookup_door(x2c(ex), y2c(ey)) != 0:
@@ -626,6 +633,10 @@ def atexit(cx, cy):
 def atexitxy(x, y):
     return atexit(x2c(x), y2c(y))
 
+def laser_hor(cx, cy):
+    return (mget(LEVEL, cx + 1, cy) | mget(LEVEL, cx - 1, cy) |
+        mget(LASERS_MAP, cx + 1, cy) | mget(LASERS_MAP, cx - 1, cy))
+
 def draw_mrect(ptr, cx, cy, xoff, yoff):
     x = 0
     y = 0
@@ -648,6 +659,15 @@ def draw_mrect(ptr, cx, cy, xoff, yoff):
         x = {TW//4}; y = {TH//4}; w = {TW//2}; h = {TH//2}
     elif mget(SPAWN_MAP, cx, cy):
         ptr[5] = rate_color({SPAWNCOL_RATE}, {SPAWNCOL1}, {SPAWNCOL2})
+    elif mget(LASERS_MAP, cx, cy):
+        if rate({LASERS_RATE}):
+            if laser_hor(cx, cy):
+                x = 0; y = 15; y ^= rnd()&1; w = {TW}; h = 1
+            else:
+                x = 15; x ^= rnd()&1; y = 0; w = 1; h = {TH}
+            ptr[5] = rate_color(1, {rgb(255, 0, 0)}, {rgb(0, 255, 0)})
+        else:
+            return ptr
     elif lookup_door(cx, cy) != 0:
         door = lookup_door(cx, cy)
         if bit(door[0], {OBS_DEAD}):
@@ -1036,11 +1056,17 @@ def upd_alien(a):
             dir = dr
             ttl = 4
 
+    if check_laser_trap(x, y, ALIEN[3]>>1, ALIEN[4]>>1):
+        alien_hit_laser(a)
+
     if (t > 0):
         aa = scan_alien(x, y, a)
+        nx = x + DIRS[dir*2]
+        ny = y + DIRS[dir*2+1]
         if (aa == 0) | (aa > a):
-            x += DIRS[dir*2]
-            y += DIRS[dir*2+1]
+            if (mgetxy(LASERS_MAP, nx, ny)==0) | (rate({LASERS_RATE})==0) | bit(a[2], {ALIEN_HIT}):
+                x = nx
+                y = ny
 
 
     a[2] &= ~0xf3
@@ -1074,6 +1100,14 @@ def upd_aliens():
                 upd_alien(a)
             a += {ALIEN_SIZE}
         return
+
+def check_laser_trap(x, y, w, h):
+    if mgetxy(LASERS_MAP, x, y) & rate({LASERS_RATE}):
+       if (laser_hor(x2c(x), y2c(y))==0) & (abs((x&{TWM})-{TW//2}) < w):
+           return 1
+       elif (laser_hor(x2c(x), y2c(y))==1) & (abs((y&{THM})-{TH//2}) < h):
+           return 1
+    return 0
 
 def upd_hero():
     if HERO_DEAD > 0:
@@ -1119,6 +1153,10 @@ def upd_hero():
 
     if insidexy(PX, PY) == 0:
         return
+
+    if check_laser_trap(PX, PY, 6, 9):
+           HERO_DEAD = 1
+           return
 
     if mclrxy(PADS_MAP, PX, PY):
         PADS_NR -= 1
