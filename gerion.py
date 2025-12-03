@@ -1128,6 +1128,8 @@ def upd_hero():
     if INP_C & INP_A:
         kbd_clear()
         LEVEL_NR += 1
+        if LEVEL_NR >= {LEVELS_NR}:
+            LEVEL_NR = 0
         NEXT_LEVEL = LEVELS + LEVELS_DIR[LEVEL_NR]
         SCROLL_MODE = -480
         return
@@ -1227,7 +1229,7 @@ def setup():
     TITLE_MODE = 1
     LEVEL_NR = 0
     LEVEL = LEVELS + LEVELS_DIR[LEVEL_NR]
-
+    NEXT_LEVEL = LEVEL
     i = 0
     while i < {len(ALIEN)}:
         ALIEN_COLS[i] = ALIEN[i*{RECT_SIZE}+5]

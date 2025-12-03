@@ -439,9 +439,10 @@ def map2bit(t):
 
 LEVELS = []
 LEVELS_DIR = [0]
-
+LEVELS_NR = 0
 for m in MAP:
     LEVELS += map2bit(m)
     LEVELS_DIR.append(len(LEVELS))
+    LEVELS_NR += 1
 
 save_game('gerion.bin', load_code('gerion.py'))
