@@ -276,7 +276,7 @@ def loadlev():
             new_alien(c2x(cx), c2y(cy))
         elif it == {ITEM_ALIEN_BOSS}:
             new_alien(c2x(cx), c2y(cy))
-            ALIENS[ALIENS_NR-1+2] |= {ALIEN_BOSS}
+            ALIENS[(ALIENS_NR-1)*{ALIEN_SIZE}+2] |= {ALIEN_BOSS}
         elif it == {ITEM_LASER}:
             mset(LASERS_MAP, cx, cy, 1)
         else:
