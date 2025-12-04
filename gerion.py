@@ -685,9 +685,15 @@ def draw_mrect(ptr, cx, cy, xoff, yoff):
             ptr[5] = rate_color({EXITCOL_RATE}, {EXITCOL3}, {EXITCOL4})
         else:
             ptr[5] = rate_color({EXITCOL_RATE}, {EXITCOL1}, {EXITCOL2})
+        x += 2
+        y += 2
+        w -= 4
+        h -= 4
     elif mget(PADS_MAP, cx, cy):
         ptr[5] = rate_color({PADCOL_RATE}, {PADCOL1}, {PADCOL2})
-        x = {TW//4}; y = {TH//4}; w = {TW//2}; h = {TH//2}
+        w = {TW//4}; h = {TH//4}
+        x = {TH//8} + abs(0xf-((FRAMES+8)&0x1f))
+        y = {TH//8} + abs(0xf-(FRAMES&0x1f))
     elif mget(SPAWN_MAP, cx, cy):
         ptr[5] = rate_color({SPAWNCOL_RATE}, {SPAWNCOL1}, {SPAWNCOL2})
     elif mget(LASERS_MAP, cx, cy):
