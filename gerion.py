@@ -259,8 +259,7 @@ def loadlev():
 
     TELEPORT_FRAME = FRAMES
 
-    ecb = cb + {MAX_ITEMS}
-    while cb < ecb:
+    while 1:
         if not_bit(cb[0], {ITEM_MASK}):
             break
         cx = int2cx(cb[0])
