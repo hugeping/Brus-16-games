@@ -503,15 +503,28 @@ def alien_light_cell(a):
     tx = a[0] >> {TWS}
     ty = a[1] >> {THS}
 
-    return (light_ray(px, py, tx, ty, {VIEW_R}) |
-        light_ray(px+1, py, tx, ty, {VIEW_R}) |
-        light_ray(px-1, py, tx, ty, {VIEW_R}) |
-        light_ray(px, py-1, tx, ty, {VIEW_R}) |
-        light_ray(px, py+1, tx, ty, {VIEW_R}) |
-        light_ray(px+1, py+1, tx, ty, {VIEW_R}) |
-        light_ray(px-1, py+1, tx, ty, {VIEW_R}) |
-        light_ray(px-1, py-1, tx, ty, {VIEW_R}) |
-        light_ray(px+1, py-1, tx, ty, {VIEW_R}))
+    if (px == tx) | (py == ty) | (abs(tx-px) == abs(ty-py)):
+        return light_ray(px, py, tx, ty, {VIEW_R})
+
+    dx = -1; dy = -1
+
+    if abs(tx-px) > abs(ty-py): #h
+        if tx > px:
+            dx = 1
+    else: #v
+        if ty > py:
+            dy = 1
+    i = 0
+    while i < 2:
+        i += 1
+        if light_ray(px, py, px + dx*i, py + dy*i, 1) == 0:
+            return 0
+        px += dx; dy += dy
+        if mblock(px, py):
+            return 0
+        if light_ray(px, py, tx, ty, {VIEW_R}-i):
+            return 1
+    return 0
 
 def alien_visible(a):
     return bit(a[2], {ALIEN_HIT}) | alien_light_cell(a)
