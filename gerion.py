@@ -268,8 +268,11 @@ def loadlev():
         if it == {ITEM_PAD}:
             mset(PADS_MAP, cx, cy, 1)
             PADS_NR += 1
-        elif it == {ITEM_SPAWN}:
-            SPAWNS[SPAWNS_NR] = c2int(cx, cy)
+        elif (it == {ITEM_SPAWN}) | (it == {ITEM_SPAWN_BOSS}):
+            fl = 0
+            if it == {ITEM_SPAWN_BOSS}:
+                fl = {SPAWN_BOSS}
+            SPAWNS[SPAWNS_NR] = c2int(cx, cy) | fl
             mset(SPAWN_MAP, cx, cy, 1)
             SPAWNS_NR += 1
         elif it == {ITEM_ALIEN}:
@@ -949,6 +952,9 @@ def spawn_alien():
     if SPAWN_ID >= SPAWNS_NR:
         SPAWN_ID = 0
     new_alien(sx, sy)
+    if bit(spawn, {SPAWN_BOSS}):
+        ALIENS[(ALIENS_NR-1)*{ALIEN_SIZE}+2] |= {ALIEN_BOSS}
+
 
 def new_alien(sx, sy):
     a = ALIENS

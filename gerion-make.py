@@ -152,6 +152,7 @@ ALIENS_SIZE = ALIENS_MAX*ALIEN_SIZE
 ALIENS = [0]*ALIENS_SIZE
 OBS = [0]*OBS_MAX*OBS_SIZE
 SPAWNS = [0]*SPAWNS_MAX
+SPAWN_BOSS = 0x8000
 
 c1 = rgb(211, 211, 211)
 c2 = rgb(192, 192, 192)
@@ -246,6 +247,7 @@ ITEM_DOOR_SECRET  = 0x0500
 ITEM_REACTOR = 0x0600
 ITEM_LASER = 0x0700
 ITEM_SPAWN = 0xff00
+ITEM_SPAWN_BOSS = 0xfe00
 ITEM_MASK  = 0xff00
 
 ALIEN_DEAD =  0x2000
@@ -281,6 +283,7 @@ def debug(text):
 # $ - alien
 # ! - boss alien
 # & - spawn
+# B - boss spawn
 # R - reactor
 # / - laser
 
@@ -390,6 +393,23 @@ MAP = (
 ''',
 
 '''
+B..#...#...#..@
+.*./.*./.*./.*.
+...#...#...#...
+#/###/###/###/#
+...#...#...#...
+.*./.*./.*./.*.
+...#...#...#...
+#/###/###/###/#
+...#...#...#...
+.*./.*./.*./.*.
+...#...#...#...
+#/###/###/###/#
+...#...#...#...
+.*./.*./.*./.*..
+...#...#...#..B''',
+
+'''
 !    #####....!
  ??? #   #.???.
  ?R? ? # ?.?R?.
@@ -430,6 +450,8 @@ def map2bit(t):
                 items.append((x, y, ITEM_PAD))
             elif i == '&':
                 items.append((x, y, ITEM_SPAWN))
+            elif i == 'B':
+                items.append((x, y, ITEM_SPAWN_BOSS))
             elif i == '$':
                 items.append((x, y, ITEM_ALIEN))
             elif i == '!':
