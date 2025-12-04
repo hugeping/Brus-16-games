@@ -1455,7 +1455,7 @@ def draw():
     if (RADAR_MODE > 0):
         ptr = draw_radar(ptr, 480 - RADAR_MODE)
 
-    zoom_mode()
+    {ZOOM_MODE_ENABLED}
     dx = 0
     dy = 0
     if SHAKE_MODE > 0:
