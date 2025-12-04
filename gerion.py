@@ -214,6 +214,7 @@ def lookup_reactor(cx, cy):
     return lookup_obs(cx, cy,  {ITEM_REACTOR})
 
 def loadlev():
+    current_zoom = {1 << ZOOM_BITS}
     R_NR = 0
     SHAKE_MODE = 0
     ENDING_MODE = 0
@@ -612,6 +613,9 @@ def draw_hero(ptr, cx, cy):
 def rate(r):
     return (FRAMES >> r)&1
 
+def rate_shift(r, s):
+    return ((FRAMES+s) >> r)&1
+
 def rate_trigger(r):
     return (((FRAMES-1) >> r)&1) != ((FRAMES >> r)&1)
 
@@ -640,8 +644,11 @@ def atexitxy(x, y):
     return atexit(x2c(x), y2c(y))
 
 def laser_hor(cx, cy):
-    return (mget(LEVEL, cx + 1, cy) | mget(LEVEL, cx - 1, cy) |
-        mget(LASERS_MAP, cx + 1, cy) | mget(LASERS_MAP, cx - 1, cy))
+    if  mget(LASERS_MAP, cx + 1, cy) | mget(LASERS_MAP, cx - 1, cy):
+        return 1
+    if  mget(LASERS_MAP, cx, cy-1) | mget(LASERS_MAP, cx, cy+1):
+        return 0
+    return mget(LEVEL, cx + 1, cy) | mget(LEVEL, cx - 1, cy)
 
 def draw_mrect(ptr, cx, cy, xoff, yoff):
     x = 0
@@ -666,7 +673,7 @@ def draw_mrect(ptr, cx, cy, xoff, yoff):
     elif mget(SPAWN_MAP, cx, cy):
         ptr[5] = rate_color({SPAWNCOL_RATE}, {SPAWNCOL1}, {SPAWNCOL2})
     elif mget(LASERS_MAP, cx, cy):
-        if rate({LASERS_RATE}):
+        if check_laser_active(cx, cy):
             if laser_hor(cx, cy):
                 x = 0; y = 15; y ^= rnd()&1; w = {TW}; h = 1
             else:
@@ -995,6 +1002,9 @@ def alien_sight(x, y, tx, ty):
         return 0;
     return light_ray(x2c(x), y2c(y), x2c(tx), y2c(ty), {W})
 
+try_dirsl = [0, -1, 2, 1]
+try_dirsr = [0, 1, -2, -1]
+
 def upd_alien(a):
     if bit(a[2], {ALIEN_DEAD}):
         e = bit_gethi(a[2], {ALIEN_MASK}) - 4
@@ -1035,18 +1045,19 @@ def upd_alien(a):
                 dir = 0
             else:
                 dir = 2
-        ttl = 8
+        ttl = 7
 
-    t = 4
-    if get_alien_dir()&1:
-        d = 1
+    t = 0
+
+    if rnd()&1:
+        try_dirs = try_dirsl
     else:
-        d = -1
+        try_dirs = try_dirsr
 
-    while (aligned) & (t > 0) & (alien_can_move(a, dir) == 0):
-        dir += d
+    while (aligned) & (t < 4) & (alien_can_move(a, dir) == 0):
+        dir += try_dirs[t]
         dir &= 0x3
-        t -= 1
+        t += 1
 
     dl = (dir + 1)&0x3
     dr = (dir + 3)&0x3
@@ -1055,7 +1066,7 @@ def upd_alien(a):
     escape = bit(a[2], {ALIEN_HIT})
     if max(abs(a[0]-PX), abs(a[1]-PY)) < 2*{TW}:
         escape = 0
-    if (((ttl == 0)|escape)) & aligned & (t > 0):
+    if (((ttl == 0)|escape)) & aligned & (t == 0):
         if (alien_can_move(a, dl) == 1):
             dir = dl
             ttl = 4
@@ -1066,12 +1077,12 @@ def upd_alien(a):
     if check_laser_trap(x, y, ALIEN[3]>>1, ALIEN[4]>>1):
         alien_hit_laser(a)
 
-    if (t > 0):
+    if (t != 4):
         aa = scan_alien(x, y, a)
         nx = x + DIRS[dir*2]
         ny = y + DIRS[dir*2+1]
         if (aa == 0) | (aa > a):
-            if (mgetxy(LASERS_MAP, nx, ny)==0) | (rate({LASERS_RATE})==0) | bit(a[2], {ALIEN_HIT}):
+            if (check_laser_active(x2c(nx), x2c(ny)) == 0) | bit(a[2], {ALIEN_HIT}):
                 x = nx
                 y = ny
 
@@ -1108,11 +1119,23 @@ def upd_aliens():
             a += {ALIEN_SIZE}
         return
 
+def check_laser_active(xc, yc):
+    if mget(LASERS_MAP, xc, yc) == 0:
+        return 0
+    hor = (laser_hor(xc, yc)==1)
+    if hor:
+        d = yc&1
+    else:
+        d = xc&1
+    return rate_shift({LASERS_RATE}, d*{LASERS_SHIFT})
+
 def check_laser_trap(x, y, w, h):
-    if mgetxy(LASERS_MAP, x, y) & rate({LASERS_RATE}):
-       if (laser_hor(x2c(x), y2c(y))==0) & (abs((x&{TWM})-{TW//2}) < w):
+    xc = x2c(x)
+    yc = y2c(y)
+    if check_laser_active(xc, yc):
+       if ((laser_hor(xc, yc)==0) & (abs((x&{TWM})-{TW//2}) < w)):
            return 1
-       elif (laser_hor(x2c(x), y2c(y))==1) & (abs((y&{THM})-{TH//2}) < h):
+       elif ((laser_hor(xc, yc)==1) & (abs((y&{THM})-{TH//2}) < h)):
            return 1
     return 0
 
@@ -1132,10 +1155,14 @@ def upd_hero():
         else:
             RADAR_MODE -= 8
 
-    if INP_C & INP_A:
+    if INP_C & (INP_A | INP_B):
+        if INP_B:
+            LEVEL_NR -= 1
+        else:
+            LEVEL_NR += 1
         kbd_clear()
-        LEVEL_NR += 1
-        if LEVEL_NR >= {LEVELS_NR}:
+
+        if (LEVEL_NR >= {LEVELS_NR}) | (LEVEL_NR < 0):
             setup()
             return
         NEXT_LEVEL = LEVELS + LEVELS_DIR[LEVEL_NR]
@@ -1375,7 +1402,7 @@ def draw_title(ptr):
 
 def zoom_mode():
     target_z = {2 << ZOOM_BITS}
-    if ((RADAR_MODE != 0) | INP_STATE[{KEY_B}]) | (HERO_DEAD > 0):
+    if ((RADAR_MODE != 0) | INP_STATE[{KEY_B}]) | (HERO_DEAD > 0) | (SCROLL_MODE > 0):
         target_z = {1 << ZOOM_BITS}
     if current_zoom < target_z:
         current_zoom += 1
