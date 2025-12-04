@@ -1217,6 +1217,7 @@ def upd_hero():
     if mclrxy(PADS_MAP, PX, PY):
         PADS_NR -= 1
         POWER_DRAW = 0
+        EXPLODE_MODE += 1
     if exit_activated() & atexitxy(PX, PY):
         LEVEL_NR += 1
         NEXT_LEVEL = LEVELS + LEVELS_DIR[LEVEL_NR]
