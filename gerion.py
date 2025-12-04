@@ -218,12 +218,10 @@ def loadlev():
     R_NR = 0
     SHAKE_MODE = 0
     ENDING_MODE = 0
-    BLINK_MODE = 0
     EXPLODE_MODE = 0
     NEXT_LEVEL = LEVEL
     SCROLL_MODE = 480
     RADAR_MODE = 0
-    ALIEN_DIR = 0
     HERO_DEAD = 0
     HERO_DIR = 3
 
@@ -690,9 +688,9 @@ def draw_mrect(ptr, cx, cy, xoff, yoff):
     elif mget(LASERS_MAP, cx, cy):
         if check_laser_active(cx, cy):
             if laser_hor(cx, cy):
-                x = 0; y = 15; y ^= rnd()&1; w = {TW}; h = 1
+                x = 0; y = 15; y ^= FRAMES&1; w = {TW}; h = 1
             else:
-                x = 15; x ^= rnd()&1; y = 0; w = 1; h = {TH}
+                x = 15; x ^= FRAMES&1; y = 0; w = 1; h = {TH}
             ptr[5] = rate_color(1, {rgb(255, 0, 0)}, {rgb(0, 255, 0)})
         else:
             return ptr
@@ -933,10 +931,8 @@ def draw_aliens(ptr):
         a += {ALIEN_SIZE}
     return ptr
 
-ALIEN_DIR = 0
 def get_alien_dir():
-    ALIEN_DIR = (ALIEN_DIR+1)&0x3
-    return ALIEN_DIR
+    return rnd()&0x3
 
 def spawn_alien():
     if SPAWNS_NR == 0:
@@ -1236,7 +1232,6 @@ def upd_hero():
                 PY = c2y(int2cy(spawn))
                 TELEPORT_FRAME = FRAMES
                 return
-BLINK_MODE = 0
 EXPLODE_MODE = 0
 TITLE_MODE = 0
 
@@ -1265,10 +1260,6 @@ def update():
         ENDING_MODE = min(ENDING_MODE+1, 10000)
         return
 
-    if BLINK_MODE > 0:
-        BLINK_MODE -= 1
-#    else:
-#        BLINK_MODE = rate_trigger(7+(rnd()&0xf)) * (6+(rnd()&0xf))
     upd_laser()
     upd_obs()
     upd_aliens()
@@ -1449,14 +1440,9 @@ def draw():
     if SCROLL_MODE == 0:
         ptr = draw_rect(ptr, 0, 0, 640, 480, {BGCOL1})
 
-    if BLINK_MODE == 0:
-        ptr = draw_rect(ptr, PX-{TW}*{VIEW_R}, PY-{TH}*{VIEW_R}, {VIEW_SIZE-1}*32, {VIEW_SIZE-1}*32, {BGCOL2})
+    ptr = draw_rect(ptr, PX-{TW}*{VIEW_R}, PY-{TH}*{VIEW_R}, {VIEW_SIZE-1}*32, {VIEW_SIZE-1}*32, {BGCOL2})
 
-    if (BLINK_MODE > 0) & (EXPLODE_MODE == 0):
-        if rate((rnd()&0xf)+1):
-            ptr = draw_map(ptr, PX, PY)
-    else:
-        ptr = draw_map(ptr, PX, PY)
+    ptr = draw_map(ptr, PX, PY)
     ptr = draw_hero(ptr, PX, PY)
     ptr = draw_laser(ptr)
     ptr = draw_aliens(ptr)
