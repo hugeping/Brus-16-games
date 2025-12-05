@@ -714,7 +714,6 @@ def laser_hor(cx, cy):
         return 0
     return mget(LEVEL, cx + 1, cy) | mget(LEVEL, cx - 1, cy)
 
-
 def draw_mrect(ptr, cx, cy, xoff, yoff):
     x = 0
     y = 0
