@@ -733,8 +733,11 @@ def draw_mrect(ptr, cx, cy, xoff, yoff):
     elif mget(PADS_MAP, cx, cy):
         ptr[5] = rate_color({PADCOL_RATE}, {PADCOL1}, {PADCOL2})
         w = {TW//4}; h = {TH//4}
-        x = {TH//8} + abs(0xf-((FRAMES+8)&0x1f))
-        y = {TH//8} + abs(0xf-(FRAMES&0x1f))
+        amp = 8
+        offs = 4
+        mask = 15
+        x = {TH//4} + amp - abs(amp - (FRAMES & mask))
+        y = {TH//4} + amp - abs(amp - ((FRAMES + offs) & mask))
     elif mget(SPAWN_MAP, cx, cy):
         ptr[5] = rate_color({SPAWNCOL_RATE}, {SPAWNCOL1}, {SPAWNCOL2})
     elif mget(LASERS_MAP, cx, cy):
