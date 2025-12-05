@@ -1341,8 +1341,8 @@ def draw_status(ptr):
 
     l = {POWER_DRAW_MAX} - POWER_DRAW
 
-    ptr = draw_rect(ptr, 640-6, 0,
-        6, l, rgb(min(128+(l>>2), 255), 32, 0))
+    ptr = draw_rect(ptr, {640-STATUS_W}, 0,
+        {STATUS_W}, l, rgb(min(128+(l>>2), 255), 32, 0))
     if exit_activated():
         l = 480
     else:
@@ -1351,8 +1351,7 @@ def draw_status(ptr):
         col = rate_color(2, {rgb(0, 32, 255)}, {rgb(0, 212, 255)})
     else:
         col = rgb(0, 32, min(128+(l>>2), 255))
-    ptr = draw_rect(ptr, 0, 0,
-        6, l, col)
+    ptr = draw_rect(ptr, 0, 0, {STATUS_W}, l, col)
     return ptr
 
 RADAR_MODE = 0

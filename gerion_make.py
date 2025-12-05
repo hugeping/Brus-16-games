@@ -10,7 +10,7 @@ def mbool(a):
     return a != 0
 
 ZOOM_BITS = 4
-
+STATUS_W = 10
 VIEW_SIZE = 7
 VIEW_R = (VIEW_SIZE//2)
 #MRECT = [0]*(VIEW_SIZE*VIEW_SIZE)
