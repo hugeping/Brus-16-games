@@ -762,7 +762,7 @@ def draw_mrect(ptr, cx, cy, xoff, yoff):
         elif bit(door[0], {OBS_HIT}):
             ptr[5] = 0xffff
         elif bit(door[0], {DOOR_SECRET}):
-            ptr[5] = {FGCOL}
+            ptr[5] = FG
         else:
             ptr[5] = { DOORCOL }
         if not_bit(door[0], {DOOR_SECRET}):
