@@ -746,6 +746,10 @@ def draw_mrect(ptr, cx, cy, xoff, yoff):
         y = {TH//4} + amp - abs(amp - ((FRAMES + offs) & mask))
     elif mget(SPAWN_MAP, cx, cy):
         ptr[5] = rate_color({SPAWNCOL_RATE}, {SPAWNCOL1}, {SPAWNCOL2})
+        x += 2
+        y += 2
+        w -= 4
+        h -= 4
     elif mget(LASERS_MAP, cx, cy):
         if check_laser_active(cx, cy):
             if laser_hor(cx, cy):
