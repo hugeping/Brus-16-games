@@ -13,6 +13,7 @@ def start():
 #   poke(-1, 10)
 FG = 0
 BG = 0
+FILL = 0
 TITLE = {TITLE}
 ASTEROID = {ASTEROID}
 STARS= {STARS}
@@ -247,8 +248,9 @@ def loadlev():
     cb += 1
     FG = cb[0]
     BG = cb[1]
+    FILL = cb[2]
     # items
-    cb += 2
+    cb += 3
     bzero(PADS_MAP, {H})
     bzero(SPAWN_MAP, {H})
     bzero(LASERS_MAP, {H})
@@ -1478,7 +1480,7 @@ def draw():
         return
 
     if SCROLL_MODE == 0:
-        ptr = draw_rect(ptr, 0, 0, 640, 480, {BGCOL1})
+        ptr = draw_rect(ptr, 0, 0, 640, 480, FILL)
 
     ptr = draw_rect(ptr, PX-{TW}*{VIEW_R}, PY-{TH}*{VIEW_R}, {VIEW_SIZE-1}*32, {VIEW_SIZE-1}*32, BG)
 

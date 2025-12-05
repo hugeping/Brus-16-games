@@ -289,6 +289,7 @@ def debug(text):
 # / - laser
 # fg:r,g,b - foreground
 # bg:r,g,b - backround
+# fill:r,g,b - fill color
 # press C+A - next level
 # press C+B - prev level ;)
 
@@ -345,7 +346,6 @@ fg:0,0,0
 ####### #######
 #####*   *#####
 #######&#######''',
-
 '''
 ###############
 #*###&   &###*#
@@ -362,6 +362,26 @@ fg:0,0,0
 # #*       *# #
 # ########### #
 ###############''',
+'''
+fg:0,47,85
+bg:0,0,0
+fill:0,0,0
+###############
+###############
+*      *      *
+               
+$             $
+               
+               
+@      E      *
+               
+               
+$             $
+               
+*      *      *
+###############
+###############''',
+
 '''
 .......B.......
  ##%## # ##%##.
@@ -515,6 +535,7 @@ def map2bit(t):
     px, py = 0, 0
     ex, ey = -1, -1
     fg = FGCOL
+    fill = BGCOL1
     bg = BGCOL2
     for l in t.splitlines():
 #        l = l.strip()
@@ -525,6 +546,9 @@ def map2bit(t):
             continue
         elif l.startswith("bg:"):
             bg = parsecolor(l[3:])
+            continue
+        elif l.startswith("fill:"):
+            fill = parsecolor(l[5:])
             continue
         c = 0
         x = 0
@@ -561,6 +585,7 @@ def map2bit(t):
     r.append((py<<4)|px|(ey<<12)|(ex<<8))
     r.append(fg)
     r.append(bg)
+    r.append(fill)
     for i in items:
         r.append((i[1]<<4)|i[0]|i[2])
     r.append(0) # end
