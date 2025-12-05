@@ -156,8 +156,8 @@ SPAWNS = [0]*SPAWNS_MAX
 SPAWN_BOSS = 0x8000
 
 c1 = rgb(211, 211, 211)
-c2 = rgb(192, 192, 192)
-c3 = rgb(169, 169, 169)
+c2 = rgb(192, 192, 192) # legs
+c3 = rgb(157,177,204) #(169, 169, 169) # pack
 c4 = rgb(24, 24, 24)
 
 HERO = [
