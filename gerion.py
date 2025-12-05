@@ -1215,6 +1215,7 @@ def upd_hero():
 
         if (LEVEL_NR >= {LEVELS_NR}) | (LEVEL_NR < 0):
             setup()
+            loadlev()
             return
         NEXT_LEVEL = LEVELS + LEVELS_DIR[LEVEL_NR]
         SCROLL_MODE = -480
@@ -1411,6 +1412,7 @@ def draw_ending(ptr):
                 ptr[3] = v*2
             if (ENDING_MODE > frame1+64+120+160+128):
                 setup()
+                loadlev()
         return ptr + {RECT_SIZE}
     ptr = draw_stars(ptr)
     memcpy(ptr, ASTEROID, {len(ASTEROID)})
