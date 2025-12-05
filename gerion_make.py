@@ -287,6 +287,8 @@ def debug(text):
 # B - boss spawn
 # R - reactor
 # / - laser
+# fg:r,g,b - foreground
+# bg:r,g,b - backround
 
 MAP = (
 
