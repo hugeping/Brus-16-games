@@ -289,6 +289,8 @@ def debug(text):
 # / - laser
 # fg:r,g,b - foreground
 # bg:r,g,b - backround
+# press C+A - next level
+# press C+B - prev level ;)
 
 MAP = (
 
