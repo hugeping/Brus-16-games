@@ -642,18 +642,58 @@ def rate_color(r, c1, c2):
         return c1
     return c2
 
-def item_rect(ptr, x, y, w, h):
-    if hit2(x, y, w, h, ptr[1], ptr[2], ptr[3], ptr[4]) == 0:
+rect_clip = [0, 0, 0, 0, 0, 0]
+
+def item_rect(dst, x, y, w, h, clip):
+    if hit2(x, y, w, h, clip[1], clip[2], clip[3], clip[4]) == 0:
         return 0
 
-    nx = max(ptr[1], x)
-    ny = max(ptr[2], y)
-    ptr[3] = max(1, min(ptr[1] + ptr[3], x + w) - nx)
-    ptr[4] = max(1, min(ptr[2] + ptr[4], y + h) - ny)
-    ptr[1] = nx
-    ptr[2] = ny
+    nx = max(clip[1], x)
+    ny = max(clip[2], y)
+    dst[3] = max(1, min(clip[1] + clip[3], x + w) - nx)
+    dst[4] = max(1, min(clip[2] + clip[4], y + h) - ny)
+    dst[1] = nx
+    dst[2] = ny
 
     return 1
+
+#def mrect_sprite(dst, ptr, l, x, y, xoff, yoff):
+#    mrect_clip(rect_clip, xoff, yoff)
+#    eptr = ptr + l
+#    while ptr < eptr:
+#        if item_rect(dst, ptr[1], ptr[2], ptr[3], ptr[4], rect_clip) == 1:
+#            dst[5] = ptr[5]
+#            dst[0] = 1
+#            dst[1] += x<<{TW}
+#            dst[2] += y<<{TH}
+#            dst += {RECT_SIZE}
+#        ptr += {RECT_SIZE}
+
+def mrect_clip(ptr, xoff, yoff):
+    xmod = xoff >> 8
+    ymod = yoff >> 8
+    xoff = xoff & {TWM}
+    yoff = yoff & {THM}
+
+    ptr[1] = 0
+    ptr[2] = 0
+
+    if xmod == 1:
+        ptr[1] = xoff
+        ptr[3] = {TW} - xoff
+    elif xmod == 2:
+        ptr[3] = xoff
+    else:
+        ptr[3] = {TW}
+
+    if ymod == 1:
+        ptr[2] = yoff
+        ptr[4] = {TH} - yoff
+    elif ymod == 2:
+        ptr[4] = yoff
+    else:
+        ptr[4] = {TH}
+
 
 def atexit(cx, cy):
     return (cx == EXIT_CX) & (cy == EXIT_CY)
@@ -667,6 +707,7 @@ def laser_hor(cx, cy):
     if  mget(LASERS_MAP, cx, cy-1) | mget(LASERS_MAP, cx, cy+1):
         return 0
     return mget(LEVEL, cx + 1, cy) | mget(LEVEL, cx - 1, cy)
+
 
 def draw_mrect(ptr, cx, cy, xoff, yoff):
     x = 0
@@ -760,34 +801,12 @@ def draw_mrect(ptr, cx, cy, xoff, yoff):
     if EXPLODE_MODE > 0:
         ptr[5] = 0xffff
 
-    ptr[0] = 1
-    xmod = xoff >> 8
-    ymod = yoff >> 8
-    xoff = xoff & {TWM}
-    yoff = yoff & {THM}
+    mrect_clip(rect_clip, xoff, yoff)
 
-    ptr[1] = 0
-    ptr[2] = 0
-
-    if xmod == 1:
-        ptr[1] = xoff
-        ptr[3] = {TW} - xoff
-    elif xmod == 2:
-        ptr[3] = xoff
-    else:
-        ptr[3] = {TW}
-
-    if ymod == 1:
-        ptr[2] = yoff
-        ptr[4] = {TH} - yoff
-    elif ymod == 2:
-        ptr[4] = yoff
-    else:
-        ptr[4] = {TH}
-
-    if item_rect(ptr, x, y, w, h) == 0:
+    if item_rect(ptr, x, y, w, h, rect_clip) == 0:
         return ptr
 
+    ptr[0] = 1
     ptr[1] += cx*{TW}
     ptr[2] += cy*{TH}
 
