@@ -499,15 +499,27 @@ B    #*!*#    .
 !... ##### ...!''',
 )
 
+def parsecolor(l):
+    r, g, b = map(int, l.strip().split(","))
+    return rgb(r, g, b)
+
 def map2bit(t):
     r = []
     items = []
     x, y = 0, 0
     px, py = 0, 0
     ex, ey = -1, -1
+    fg = FGCOL
+    bg = BGCOL2
     for l in t.splitlines():
 #        l = l.strip()
         if l == "":
+            continue
+        elif l.startswith("fg:"):
+            fg = parsecolor(l[3:])
+            continue
+        elif l.startswith("bg:"):
+            bg = parsecolor(l[3:])
             continue
         c = 0
         x = 0
@@ -542,6 +554,8 @@ def map2bit(t):
     if ex < 0:
         ex, ey = px, py
     r.append((py<<4)|px|(ey<<12)|(ex<<8))
+    r.append(fg)
+    r.append(bg)
     for i in items:
         r.append((i[1]<<4)|i[0]|i[2])
     r.append(0) # end

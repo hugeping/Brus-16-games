@@ -11,7 +11,8 @@ def start():
 #   d = x & 15
 #   poke(-1, d + 48 + (d > 9) * 7)
 #   poke(-1, 10)
-
+FG = 0
+BG = 0
 TITLE = {TITLE}
 ASTEROID = {ASTEROID}
 STARS= {STARS}
@@ -242,9 +243,12 @@ def loadlev():
 
     OBS_NR = 0
     bzero(OBS, {OBS_MAX*OBS_SIZE})
-
-    # items
+    # colors
     cb += 1
+    FG = cb[0]
+    BG = cb[1]
+    # items
+    cb += 2
     bzero(PADS_MAP, {H})
     bzero(SPAWN_MAP, {H})
     bzero(LASERS_MAP, {H})
@@ -718,9 +722,9 @@ def draw_mrect(ptr, cx, cy, xoff, yoff):
 #    if inside(cx, cy) == 0:
 #        return ptr
     if inside(cx, cy) == 0:
-        ptr[5] = {FGCOL}
+        ptr[5] = FG
     elif mget(LEVEL, cx, cy):
-        ptr[5] = {FGCOL}
+        ptr[5] = FG
     elif atexit(cx, cy):
         if exit_activated():
             ptr[5] = rate_color({EXITCOL_RATE}, {EXITCOL3}, {EXITCOL4})
@@ -1474,7 +1478,7 @@ def draw():
     if SCROLL_MODE == 0:
         ptr = draw_rect(ptr, 0, 0, 640, 480, {BGCOL1})
 
-    ptr = draw_rect(ptr, PX-{TW}*{VIEW_R}, PY-{TH}*{VIEW_R}, {VIEW_SIZE-1}*32, {VIEW_SIZE-1}*32, {BGCOL2})
+    ptr = draw_rect(ptr, PX-{TW}*{VIEW_R}, PY-{TH}*{VIEW_R}, {VIEW_SIZE-1}*32, {VIEW_SIZE-1}*32, BG)
 
     ptr = draw_map(ptr, PX, PY)
     ptr = draw_hero(ptr, PX, PY)
