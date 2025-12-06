@@ -34,7 +34,6 @@ OBS_MAP = {OBS_MAP}
 SPAWN_FRAME = 0
 PADS_NR = 0
 PADS_MAX = 0
-PADS_S = 0
 SPAWNS_NR = 0
 SPAWN_ID = 0
 TELEPORT_FRAME = 0
@@ -302,10 +301,7 @@ def loadlev():
             OBS_NR += 1
         cb += 1
 
-    PADS_S = 0
     PADS_MAX = PADS_NR
-    while (1<<PADS_S) < PADS_NR:
-        PADS_S += 1
 
 def draw_rect(ptr, x, y, w, h, col):
     if (ptr >= {RECT_MEM+RECT_SIZE*RECT_NUM}):
@@ -1356,7 +1352,6 @@ def draw_status(ptr):
     if exit_activated():
         l = 480
     else:
-        #l = ((PADS_MAX - PADS_NR)*480) >> PADS_S
         l = (PADS_MAX - PADS_NR) * DIV
     if l >= 480:
         col = rate_color(2, {rgb(0, 32, 255)}, {rgb(0, 212, 255)})
@@ -1526,4 +1521,3 @@ def main():
         draw()
         wait()
         FRAMES += 1
-#        debug_val(ALIENS_NR)
