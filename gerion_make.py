@@ -594,6 +594,7 @@ def map2bit(t):
     fg = FGCOL
     fill = BGCOL1
     bg = BGCOL2
+    div = 480 // (t.count('*') + t.count('R'))
     for l in t.splitlines():
 #        l = l.strip()
         if l == "":
@@ -643,6 +644,7 @@ def map2bit(t):
     r.append(fg)
     r.append(bg)
     r.append(fill)
+    r.append(div)
     for i in items:
         r.append((i[1]<<4)|i[0]|i[2])
     r.append(0) # end

@@ -15,6 +15,7 @@ def start():
 FG = 0
 BG = 0
 FILL = 0
+DIV = 0
 TITLE = {TITLE}
 ASTEROID = {ASTEROID}
 STARS= {STARS}
@@ -250,8 +251,9 @@ def loadlev():
     FG = cb[0]
     BG = cb[1]
     FILL = cb[2]
+    DIV = cb[3]
     # items
-    cb += 3
+    cb += 4
     bzero(PADS_MAP, {H})
     bzero(SPAWN_MAP, {H})
     bzero(LASERS_MAP, {H})
@@ -1354,7 +1356,8 @@ def draw_status(ptr):
     if exit_activated():
         l = 480
     else:
-        l = ((PADS_MAX - PADS_NR)*480) >> PADS_S
+        #l = ((PADS_MAX - PADS_NR)*480) >> PADS_S
+        l = (PADS_MAX - PADS_NR) * DIV
     if l >= 480:
         col = rate_color(2, {rgb(0, 32, 255)}, {rgb(0, 212, 255)})
     else:
