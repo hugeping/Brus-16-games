@@ -11,6 +11,7 @@ def start():
 #   d = x & 15
 #   poke(-1, d + 48 + (d > 9) * 7)
 #   poke(-1, 10)
+
 FG = 0
 BG = 0
 FILL = 0
@@ -282,8 +283,8 @@ def loadlev():
         elif it == {ITEM_ALIEN}:
             new_alien(c2x(cx), c2y(cy))
         elif it == {ITEM_ALIEN_BOSS}:
-            new_alien(c2x(cx), c2y(cy))
-            ALIENS[(ALIENS_NR-1)*{ALIEN_SIZE}+2] |= {ALIEN_BOSS}
+            if new_alien(c2x(cx), c2y(cy)):
+                ALIENS[(ALIENS_NR-1)*{ALIEN_SIZE}+2] |= {ALIEN_BOSS}
         elif it == {ITEM_LASER}:
             mset(LASERS_MAP, cx, cy, 1)
         else:
@@ -305,6 +306,8 @@ def loadlev():
         PADS_S += 1
 
 def draw_rect(ptr, x, y, w, h, col):
+    if (ptr >= {RECT_MEM+RECT_SIZE*RECT_NUM}):
+        return ptr
     ptr[0] = 1
     ptr[1] = x
     ptr[2] = y
@@ -315,6 +318,8 @@ def draw_rect(ptr, x, y, w, h, col):
 
 # ha-ha :)
 def draw_circle(ptr, cx, cy, r, col):
+    if (ptr >= {RECT_MEM+RECT_SIZE*RECT_NUM}):
+        return ptr
     ptr[0] = 1
     ptr[1] = cx - r
     ptr[2] = cy - r
@@ -875,7 +880,6 @@ def draw_map(ptr, x, y):
     y >>= {THS}
 
     r = {VIEW_R} - 1
-
     ptr = draw_hwall(ptr, x - r, y - {VIEW_R}, x + r, 0, yoff|0x100)
     ptr = draw_hwall(ptr, x - r, y + {VIEW_R}, x + r, 0, yoff|0x200)
 
@@ -886,7 +890,6 @@ def draw_map(ptr, x, y):
     ptr = draw_mrect(ptr, x-{VIEW_R}, y+{VIEW_R}, xoff|0x100, yoff|0x200)
     ptr = draw_mrect(ptr, x+{VIEW_R}, y-{VIEW_R}, xoff|0x200, yoff|0x100)
     ptr = draw_mrect(ptr, x+{VIEW_R}, y+{VIEW_R}, xoff|0x200, yoff|0x200)
-
     sy = y - r
     while sy <= y + r:
         ptr = draw_hwall(ptr, x - r, sy, x + r, 0, 0)
@@ -989,9 +992,9 @@ def spawn_alien():
     SPAWN_ID += 1
     if SPAWN_ID >= SPAWNS_NR:
         SPAWN_ID = 0
-    new_alien(sx, sy)
-    if bit(spawn, {SPAWN_BOSS}):
-        ALIENS[(ALIENS_NR-1)*{ALIEN_SIZE}+2] |= {ALIEN_BOSS}
+    if new_alien(sx, sy):
+        if bit(spawn, {SPAWN_BOSS}):
+            ALIENS[(ALIENS_NR-1)*{ALIEN_SIZE}+2] |= {ALIEN_BOSS}
 
 
 def new_alien(sx, sy):
@@ -1004,8 +1007,9 @@ def new_alien(sx, sy):
             a[2] = {ALIEN_HEALTH<<8} | get_alien_dir()
             ALIENS_NR += 1
             SPAWN_FRAME = FRAMES
-            return
+            return 1
         a += {ALIEN_SIZE}
+    return 0
 
 def hit1(x, y, w, h, tx, ty):
     return (tx >= x) & (tx < x + w) & \
@@ -1073,6 +1077,7 @@ def upd_alien(a):
         return
 
     dir = a[2]&0x3
+
     x = a[0]
     y = a[1]
 
@@ -1137,7 +1142,7 @@ def upd_alien(a):
         aa = scan_alien(x, y, a)
         nx = x + DIRS[dir*2]
         ny = y + DIRS[dir*2+1]
-        if (aa == 0) | (aa > a):
+        if ((aa == 0) | (aa > a)):
             if (check_laser_active(x2c(nx), x2c(ny)) == 0) | bit(a[2], {ALIEN_HIT}):
                 x = nx
                 y = ny
@@ -1518,3 +1523,4 @@ def main():
         draw()
         wait()
         FRAMES += 1
+#        debug_val(ALIENS_NR)
