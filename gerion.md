@@ -19,6 +19,8 @@ A spacecraft is dispatched to the object.
 - A - laser
 - B - radar
 - ARROWS - move
+- C+A - next level
+- C+B - prev level
 
 # AUTHORS
 
