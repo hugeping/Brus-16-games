@@ -23,5 +23,5 @@ A spacecraft is dispatched to the object.
 # AUTHORS
 
 - hugeping - idea, code
-- true-grue - Brus-16, ideas, fixes, advices
+- true-grue - Brus-16, ideas, fixes, advices, levels
 - Title screen art by pixelrat (more arts: t.me/artpixelrat vk.ru/artpixelrat)

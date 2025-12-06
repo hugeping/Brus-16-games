@@ -466,10 +466,10 @@ def upd_laser():
         r = lookup_reactor(x2c(ex), y2c(ey))
         obs_laser(r, 1, {R_HEALTH})
 
-    ex = max(0, ex)
-    ey = max(0, ey)
-    ex = min(ex, {W*TW-1})
-    ey = min(ey, {H*TH-1})
+    ex = max(-1, ex)
+    ey = max(-1, ey)
+    ex = min(ex, {W*TW})
+    ey = min(ey, {H*TH})
 
     LASER_X = x
     LASER_Y = y
