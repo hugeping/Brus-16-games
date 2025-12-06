@@ -277,8 +277,6 @@ def debug(text):
 # @ - hero
 # E - exit
 # % - door
-# | - vlaser
-# - - hlaser
 # ? - secret door
 # * - power cell
 # $ - alien
