@@ -4,7 +4,7 @@ $ git clone --recursive https://github.com/hugeping/Brus-16-games/
 $ cd Brus-16-games/Brus-16
 $ make
 $ cd ..
-$ ./python3 ./gerion_make.py && ./brus16 ./gerion.bin
+$ ./gerion_make.py && ./brus16 ./gerion.bin
 
 # STORY
 
