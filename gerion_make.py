@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-
 from brus16 import *
 ZOOM_MODE_ENABLED = "zoom_mode()"
 
@@ -234,22 +233,26 @@ THM = 0x1f
 W = 15
 H = 15
 
-PADS_MAP = [0]*H
-SPAWN_MAP = [0]*H
-LASERS_MAP = [0]*H
-RADAR_MAP = [0]*H
-OBS_MAP = [0]*H
+OBJS = [0]*(W*H)
 
-ITEM_PAD   = 0x0100
-ITEM_ALIEN = 0x0200
-ITEM_DOOR  = 0x0300
-ITEM_ALIEN_BOSS = 0x0400
-ITEM_DOOR_SECRET  = 0x0500
-ITEM_REACTOR = 0x0600
-ITEM_LASER = 0x0700
-ITEM_SPAWN = 0xff00
-ITEM_SPAWN_BOSS = 0xfe00
-ITEM_MASK  = 0xff00
+RADAR_MAP = [0]*H
+
+DOOR_H = 0x1
+LASER_H = 0x1
+
+OB_H      = 0x4000
+OB_SECRET = 0x2000
+OB_BOSS   = 0x2000
+
+OB_OBSTACLE = 0x1000
+OB_WALL  = OB_OBSTACLE
+OB_PAD   = 0x0100
+OB_ALIEN = 0x0200
+OB_DOOR  = 0x0300|OB_OBSTACLE
+OB_REACTOR = 0x0600|OB_OBSTACLE
+OB_LASER = 0x0700
+OB_SPAWN = 0x0800
+OB_MASK  = 0x1f00
 
 ALIEN_DEAD =  0x2000
 ALIEN_HIT =   0x4000
@@ -610,8 +613,16 @@ def parsecolor(l):
     r, g, b = map(int, l.split(","))
     return rgb(r, g, b)
 
+def mget(m, cx, cy):
+    if cx < 0 or cx >= W:
+        return False
+    if cy < 0 or cy >= H:
+        return False
+    return (m[cy]&(1<<cx)) != 0
+
 def map2bit(t):
     r = []
+    lasers = []
     items = []
     x, y = 0, 0
     px, py = 0, 0
@@ -634,34 +645,38 @@ def map2bit(t):
             fill = parsecolor(l[5:])
             continue
         c = 0
+        las = 0
         x = 0
         for i in l:
             c >>= 1
+            las >>= 1
             c |= 0x8000 if i == '#' else 0
             if i == '@':
                 px, py = x, y
             elif i == 'E':
                 ex, ey = x, y
             elif i == '*':
-                items.append((x, y, ITEM_PAD))
+                items.append((x, y, OB_PAD))
             elif i == '&':
-                items.append((x, y, ITEM_SPAWN))
+                items.append((x, y, OB_SPAWN))
             elif i == 'B':
-                items.append((x, y, ITEM_SPAWN_BOSS))
+                items.append((x, y, OB_SPAWN | OB_BOSS))
             elif i == '$':
-                items.append((x, y, ITEM_ALIEN))
+                items.append((x, y, OB_ALIEN))
             elif i == '!':
-                items.append((x, y, ITEM_ALIEN_BOSS))
+                items.append((x, y, OB_ALIEN | OB_BOSS))
             elif i == '%':
-                items.append((x, y, ITEM_DOOR))
+                items.append((x, y, OB_DOOR))
             elif i == '?':
-                items.append((x, y, ITEM_DOOR_SECRET))
+                items.append((x, y, OB_DOOR | OB_SECRET))
             elif i == 'R':
-                items.append((x, y, ITEM_REACTOR))
+                items.append((x, y, OB_REACTOR))
             elif i == '/':
-                items.append((x, y, ITEM_LASER))
+                items.append((x, y, OB_LASER))
+                las |= 0x8000
             x += 1
         r.append(c>>1)
+        lasers.append(las>>1)
         y += 1
     if ex < 0:
         ex, ey = px, py
@@ -671,7 +686,18 @@ def map2bit(t):
     r.append(fill)
     r.append(div)
     for i in items:
-        r.append((i[1]<<4)|i[0]|i[2])
+        fl = 0
+        if (i[2]&OB_MASK) == OB_DOOR:
+            if mget(r, i[0] + 1, i[1]) or mget(r, i[0] - 1, i[1]):
+                fl |= OB_H
+        elif (i[2]&OB_MASK) == OB_LASER:
+            if mget(lasers, i[0] + 1, i[1]) or mget(lasers, i[0] - 1, i[1]):
+                fl |= OB_H
+            elif mget(lasers, i[0], i[1]-1) or mget(lasers, i[0], i[1]+1):
+                fl |= 0
+            elif mget(r, i[0] + 1, i[1]) or mget(r, i[0] - 1, i[1]):
+                fl |= OB_H
+        r.append(i[0]|(i[1]<<4)|i[2]|fl)
     r.append(0) # end
     return r
 
