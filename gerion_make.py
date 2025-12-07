@@ -59,7 +59,12 @@ SPAWNCOL1 = rgb(200, 0, 22)
 SPAWNCOL2 = rgb(240, 255, 255)
 SPAWNCOL_RATE = 1
 
+BTNCOL1 = rgb(0xBFAA30)
+BTNCOL2 = rgb(0xFFD900)
+BTN_RATE = 4
+
 DOORCOL = rgb(41,132,159)
+DOORCOL_BOSS = rgb(0xBF3330)
 
 TITLE = [
     1, 0, 0, 15, 100, rgb(0x70a4b2),
@@ -242,7 +247,7 @@ LASER_H = 0x1
 
 OB_H      = 0x4000
 OB_SECRET = 0x2000
-OB_BOSS   = 0x2000
+OB_BOSS   = 0x8000
 
 OB_OBSTACLE  = 0x1000
 OB_WALL      = OB_OBSTACLE
@@ -289,11 +294,13 @@ def debug(text):
 # B - boss spawn
 # R - reactor
 # / - laser
-# ^ - laser-secret door
+# ^ - boss laser (use trap/btn)
+# + - boss door (use trap/btn)
 # fg:r,g,b - foreground
 # bg:r,g,b - backround
 # fill:r,g,b - fill color
 # trap:x1,y1,x2,y2 - when step on x1 y1 -> remove x2 y2 block or laser-secret
+# btn:x1,y1,x2,y2 - visible trap
 # press C+A - next level
 # press C+B - prev level ;)
 
@@ -655,6 +662,11 @@ def map2bit(t):
             continue
         elif l.startswith("trap:"):
             x1,y1,x2,y2 = parsetrap(l[5:])
+            items.append((x1, y1, OB_TRAP|OB_SECRET))
+            items.append((x2, y2, OB_TRAP))
+            continue
+        elif l.startswith("btn:"):
+            x1,y1,x2,y2 = parsetrap(l[4:])
             items.append((x1, y1, OB_TRAP))
             items.append((x2, y2, OB_TRAP))
             continue
@@ -688,6 +700,8 @@ def map2bit(t):
             elif i == '/':
                 items.append((x, y, OB_LASER))
                 las |= 0x8000
+            elif i == '+':
+                items.append((x, y, OB_DOOR | OB_BOSS))
             elif i == '^':
                 items.append((x, y, OB_LASER | OB_SECRET))
                 las |= 0x8000

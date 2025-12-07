@@ -427,8 +427,8 @@ def upd_laser():
         obs = OBS + i*{OBS_SIZE}
         obs[0] &= ~{OBS_HIT}
 
-        if (obs[1]&{OB_MASK}) == {OB_DOOR}:
-            if (LASER_X == -1) & not_bit(obs[0], {OBS_DEAD}):
+        if otype(obs[1], {OB_DOOR}):
+            if ((LASER_X == -1) | (bit(obs[1], {OB_BOSS}))) & not_bit(obs[0], {OBS_DEAD}):
                 obs[0] = bit_sethi(obs[0], {OBS_MASK}, 0)
         i += 1
 
@@ -731,6 +731,7 @@ def draw_mrect(ptr, cx, cy, xoff, yoff):
 #        return ptr
     obj = 0
     ot = 0
+
     if inside(cx, cy):
         obj = oget(cx, cy)
         ot = obj&{OB_MASK}
@@ -743,10 +744,7 @@ def draw_mrect(ptr, cx, cy, xoff, yoff):
             ptr[5] = rate_color({EXITCOL_RATE}, {EXITCOL3}, {EXITCOL4})
         else:
             ptr[5] = rate_color({EXITCOL_RATE}, {EXITCOL1}, {EXITCOL2})
-        x += 2
-        y += 2
-        w -= 4
-        h -= 4
+        x += 2; y += 2; w -= 4; h -= 4
     elif ot == {OB_PAD}:
         ptr[5] = rate_color({PADCOL_RATE}, {PADCOL1}, {PADCOL2})
         w = {TW//4}; h = {TH//4}
@@ -757,16 +755,19 @@ def draw_mrect(ptr, cx, cy, xoff, yoff):
         y = {TH//4} + amp - abs(amp - ((FRAMES + offs) & mask))
     elif ot == {OB_SPAWN}:
         ptr[5] = rate_color({SPAWNCOL_RATE}, {SPAWNCOL1}, {SPAWNCOL2})
-        x += 2
-        y += 2
-        w -= 4
-        h -= 4
+        x = 2; y = 2; w = {TW-4}; h = {TH-4}
+    elif (ot == {OB_TRAP}) & not_bit(obj, {OB_SECRET}):
+        if oget(int2cx(obj), int2cy(obj)):
+            ptr[5] = rate_color({BTN_RATE}, {BTNCOL1}, BG)
+        else:
+            ptr[5] = {BTNCOL2}
+        x = 12; y = 12; w = 8; h = 8
     elif ot == {OB_LASER}:
         if check_laser_active(cx, cy):
             if laser_hor(cx, cy):
-                x = 0; y = 15; y ^= FRAMES&1; w = {TW}; h = 1
+                x = 0; y  = 15 ^ (FRAMES&1); w = {TW}; h = 1
             else:
-                x = 15; x ^= FRAMES&1; y = 0; w = 1; h = {TH}
+                x = 15 ^ (FRAMES&1); y = 0; w = 1; h = {TH}
             ptr[5] = rate_color(1, {rgb(255, 0, 0)}, {rgb(0, 255, 0)})
         else:
             return ptr
@@ -778,6 +779,8 @@ def draw_mrect(ptr, cx, cy, xoff, yoff):
             ptr[5] = 0xffff
         elif bit(door[1], {OB_SECRET}):
             ptr[5] = FG
+        elif bit(door[1], {OB_BOSS}):
+            ptr[5] = { DOORCOL_BOSS }
         else:
             ptr[5] = { DOORCOL }
         if not_bit(door[1], {OB_SECRET}):
@@ -792,10 +795,10 @@ def draw_mrect(ptr, cx, cy, xoff, yoff):
             w += 7 - (rnd() & 0xf)
             h += 7 - (rnd() & 0xf)
         elif bit(door[0], {OBS_HIT}):
-            w ^= rnd()&1
-            h ^= rnd()&1
             x ^= rnd()&1
             y ^= rnd()&1
+            w ^= rnd()&1
+            h ^= rnd()&1
     elif ot == {OB_REACTOR}:
         r = lookup_reactor(cx, cy)
 
@@ -818,7 +821,6 @@ def draw_mrect(ptr, cx, cy, xoff, yoff):
             y += 0xf - (rnd() & 0x1f)
             w += 0xf - (rnd() & 0x1f)
             h += 0xf - (rnd() & 0x1f)
-
     else:
         return ptr
 
