@@ -375,19 +375,19 @@ def upd_obs():
         if bit(obs[0], {OBS_DEAD}):
             e = bit_gethi(obs[0], {OBS_MASK}) + 1
             m = 4
-            if obs[1] == {OB_REACTOR}:
+            if otype(obs[1], {OB_REACTOR}):
                 m = 0x1f
             if e > m:
                 if oclr(int2cx(obs[0]), int2cy(obs[0])):
                     EXPLODE_MODE += 1
-                    if obs[1] == {OB_REACTOR}:
+                    if otype(obs[1], {OB_REACTOR}):
                         PADS_NR -= 1
                         if PADS_NR == 0:
                             ENDING_MODE = 1
                             return
             else:
                 obs[0] = bit_sethi(obs[0], {OBS_MASK}, e)
-        elif obs[1] == {OB_REACTOR}:
+        elif otype(obs[1], {OB_REACTOR}):
             e = max(0, bit_gethi(obs[0], {OBS_MASK}) - rate_trigger(2))
 #            debug_val(e)
             SHAKE_MODE += (e > 0xf)
