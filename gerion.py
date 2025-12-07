@@ -124,11 +124,13 @@ def random(s):
     s ^= s << 8
     return s
 
-def ob(cx, cy, t):
-    m = oget(cx, cy)
+def otype(m, t):
     if (m&{OB_MASK}) == t:
         return 1
     return 0
+
+def ob(cx, cy, t):
+    return otype(oget(cx, cy), t)
 
 def obxy(x, y, t):
     return ob(x2c(x), y2c(y), t)
@@ -306,6 +308,9 @@ def loadlev():
         elif it == {OB_REACTOR}:
             obs_add(cx, cy, cb[0])
             PADS_NR += 1
+        elif it == {OB_TRAP}:
+            oset(cx, cy, c2int(int2cx(cb[1]), int2cy(cb[1]))|{OB_TRAP})
+            cb += 1
         else:
             obs_add(cx, cy, cb[0])
         cb += 1
@@ -725,13 +730,13 @@ def draw_mrect(ptr, cx, cy, xoff, yoff):
 #    if inside(cx, cy) == 0:
 #        return ptr
     obj = 0
-    otype = 0
+    ot = 0
     if inside(cx, cy):
         obj = oget(cx, cy)
-        otype = obj&{OB_MASK}
+        ot = obj&{OB_MASK}
     if inside(cx, cy) == 0:
         ptr[5] = FG
-    elif otype == {OB_WALL}:
+    elif ot == {OB_WALL}:
         ptr[5] = FG
     elif atexit(cx, cy):
         if exit_activated():
@@ -742,7 +747,7 @@ def draw_mrect(ptr, cx, cy, xoff, yoff):
         y += 2
         w -= 4
         h -= 4
-    elif otype == {OB_PAD}:
+    elif ot == {OB_PAD}:
         ptr[5] = rate_color({PADCOL_RATE}, {PADCOL1}, {PADCOL2})
         w = {TW//4}; h = {TH//4}
         amp = 8
@@ -750,13 +755,13 @@ def draw_mrect(ptr, cx, cy, xoff, yoff):
         mask = 15
         x = {TH//4} + amp - abs(amp - (FRAMES & mask))
         y = {TH//4} + amp - abs(amp - ((FRAMES + offs) & mask))
-    elif otype == {OB_SPAWN}:
+    elif ot == {OB_SPAWN}:
         ptr[5] = rate_color({SPAWNCOL_RATE}, {SPAWNCOL1}, {SPAWNCOL2})
         x += 2
         y += 2
         w -= 4
         h -= 4
-    elif otype == {OB_LASER}:
+    elif ot == {OB_LASER}:
         if check_laser_active(cx, cy):
             if laser_hor(cx, cy):
                 x = 0; y = 15; y ^= FRAMES&1; w = {TW}; h = 1
@@ -765,7 +770,7 @@ def draw_mrect(ptr, cx, cy, xoff, yoff):
             ptr[5] = rate_color(1, {rgb(255, 0, 0)}, {rgb(0, 255, 0)})
         else:
             return ptr
-    elif otype == {OB_DOOR}:
+    elif ot == {OB_DOOR}:
         door = lookup_door(cx, cy)
         if bit(door[0], {OBS_DEAD}):
             ptr[5] = 0xff00
@@ -791,7 +796,7 @@ def draw_mrect(ptr, cx, cy, xoff, yoff):
             h ^= rnd()&1
             x ^= rnd()&1
             y ^= rnd()&1
-    elif otype == {OB_REACTOR}:
+    elif ot == {OB_REACTOR}:
         r = lookup_reactor(cx, cy)
 
         w = 16
@@ -1183,8 +1188,11 @@ def upd_aliens():
         return
 
 def check_laser_active(xc, yc):
-    if ob(xc, yc, {OB_LASER}) == 0:
+    o = oget(xc, yc)
+    if otype(o, {OB_LASER}) == 0:
         return 0
+    if bit(o, {OB_SECRET}):
+        return 1
     hor = (laser_hor(xc, yc)==1)
     if hor:
         d = yc&1
@@ -1259,8 +1267,8 @@ def upd_hero():
     if check_laser_trap(PX, PY, 6, 9):
            HERO_DEAD = 1
            return
-    o = ogetxy(PX, PY)&{OB_MASK}
-    if o == {OB_PAD}:
+    o = ogetxy(PX, PY)
+    if otype(o, {OB_PAD}):
         oclrxy(PX, PY)
         PADS_NR -= 1
         POWER_DRAW = 0
@@ -1270,6 +1278,8 @@ def upd_hero():
         NEXT_LEVEL = LEVELS + LEVELS_DIR[LEVEL_NR]
         SCROLL_MODE = -480
         return
+    elif otype(o, {OB_TRAP}):
+        oclr(int2cx(o), int2cy(o))
 
     if (o == {OB_SPAWN}) & (obxy(ox, oy, {OB_SPAWN}) != 1) & (SPAWNS_NR > 1):
         i = 0

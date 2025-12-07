@@ -244,15 +244,16 @@ OB_H      = 0x4000
 OB_SECRET = 0x2000
 OB_BOSS   = 0x2000
 
-OB_OBSTACLE = 0x1000
-OB_WALL  = OB_OBSTACLE
-OB_PAD   = 0x0100
-OB_ALIEN = 0x0200
-OB_DOOR  = 0x0300|OB_OBSTACLE
-OB_REACTOR = 0x0600|OB_OBSTACLE
-OB_LASER = 0x0700
-OB_SPAWN = 0x0800
-OB_MASK  = 0x1f00
+OB_OBSTACLE  = 0x1000
+OB_WALL      = OB_OBSTACLE
+OB_PAD       = 0x0100
+OB_ALIEN     = 0x0200
+OB_DOOR      = 0x0300|OB_OBSTACLE
+OB_REACTOR   = 0x0400|OB_OBSTACLE
+OB_LASER     = 0x0500
+OB_SPAWN     = 0x0600
+OB_TRAP      = 0x0700
+OB_MASK      = 0x1f00
 
 ALIEN_DEAD =  0x2000
 ALIEN_HIT =   0x4000
@@ -288,13 +289,32 @@ def debug(text):
 # B - boss spawn
 # R - reactor
 # / - laser
+# ^ - laser-secret door
 # fg:r,g,b - foreground
 # bg:r,g,b - backround
 # fill:r,g,b - fill color
+# trap:x1,y1,x2,y2 - when step on x1 y1 -> remove x2 y2 block or laser-secret
 # press C+A - next level
 # press C+B - prev level ;)
 
 MAP = (
+'''
+###############
+#@   %   %   *#
+####### #######
+####### #######
+####### #######
+####### #######
+######   ######
+#*$ %  E  %  *#
+######   ######
+####### #######
+######   ######
+###### * ######
+######   ######
+###############
+###############''',
+
 # 1
 '''
 ###############
@@ -606,12 +626,18 @@ B    #*!*#    .
 !... ##### ...!''',
 )
 
+def parsenumbers(l):
+    return map(int, l.strip().split(","))
+
 def parsecolor(l):
     l = l.strip()
     if l.startswith('#'):
         return rgb(int(l[1:], 16))
-    r, g, b = map(int, l.split(","))
+    r, g, b = parsenumbers(l)
     return rgb(r, g, b)
+
+def parsetrap(l):
+    return parsenumbers(l)
 
 def mget(m, cx, cy):
     if cx < 0 or cx >= W:
@@ -644,6 +670,11 @@ def map2bit(t):
         elif l.startswith("fill:"):
             fill = parsecolor(l[5:])
             continue
+        elif l.startswith("trap:"):
+            x1,y1,x2,y2 = parsetrap(l[5:])
+            items.append((x1, y1, OB_TRAP))
+            items.append((x2, y2, OB_TRAP))
+            continue
         c = 0
         las = 0
         x = 0
@@ -673,6 +704,9 @@ def map2bit(t):
                 items.append((x, y, OB_REACTOR))
             elif i == '/':
                 items.append((x, y, OB_LASER))
+                las |= 0x8000
+            elif i == '^':
+                items.append((x, y, OB_LASER | OB_SECRET))
                 las |= 0x8000
             x += 1
         r.append(c>>1)
