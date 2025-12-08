@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 from brus16 import *
-ZOOM_MODE_ENABLED = "zoom_mode()"
 
 def mswap(a, b):
     return f'''{a} ^= {b}; {b} ^= {a}; {a} ^= {b}'''
