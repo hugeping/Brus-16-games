@@ -10,7 +10,7 @@ def mbool(a):
 
 ZOOM_BITS = 4
 STATUS_W = 10
-VIEW_SIZE = 7
+VIEW_SIZE = 7 # looks like 9 will works well...
 VIEW_R = (VIEW_SIZE//2)
 #MRECT = [0]*(VIEW_SIZE*VIEW_SIZE)
 
@@ -59,9 +59,9 @@ SPAWNCOL1 = rgb(200, 0, 22)
 SPAWNCOL2 = rgb(240, 255, 255)
 SPAWNCOL_RATE = 1
 
-BTNCOL1 = rgb(0xBFAA30)
-BTNCOL2 = rgb(0xDAD871)
-BTN_RATE = 4
+BTNCOL1 = rgb(155,17,30)
+BTNCOL2 = rgb(255,73,108)
+BTN_RATE = 3
 
 DOORCOL = rgb(41,132,159)
 DOORCOL_BOSS = rgb(0xBF3330)
