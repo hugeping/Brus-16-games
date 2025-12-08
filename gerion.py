@@ -1239,8 +1239,7 @@ def upd_hero():
 
     if INP_D & INP_C:
         ZOOM_MODE ^= 1
-        INP_D = 0
-        INP_C = 0
+        kbd_clear()
 
     if INP_C & (INP_A | INP_B):
         if INP_B:
