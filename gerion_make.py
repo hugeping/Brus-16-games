@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 from brus16 import *
+ZOOM_MODE_ENABLED = "zoom_mode()"
 
 def mswap(a, b):
     return f'''{a} ^= {b}; {b} ^= {a}; {a} ^= {b}'''
@@ -9,7 +10,7 @@ def mbool(a):
 
 ZOOM_BITS = 4
 STATUS_W = 10
-VIEW_SIZE = 7 # looks like 9 will works well...
+VIEW_SIZE = 7
 VIEW_R = (VIEW_SIZE//2)
 #MRECT = [0]*(VIEW_SIZE*VIEW_SIZE)
 
@@ -58,9 +59,9 @@ SPAWNCOL1 = rgb(200, 0, 22)
 SPAWNCOL2 = rgb(240, 255, 255)
 SPAWNCOL_RATE = 1
 
-BTNCOL1 = rgb(155,17,30)
-BTNCOL2 = rgb(255,73,108)
-BTN_RATE = 3
+BTNCOL1 = rgb(0xBFAA30)
+BTNCOL2 = rgb(0xDAD871)
+BTN_RATE = 4
 
 DOORCOL = rgb(41,132,159)
 DOORCOL_BOSS = rgb(0xBF3330)
@@ -875,5 +876,16 @@ for m in MAP:
     LEVELS += map2bit(m)
     LEVELS_DIR.append(len(LEVELS))
     LEVELS_NR += 1
+
+SFX_POS = 0
+SFX_COUNT = 1
+SFX_LOOP = 2
+SFX_SIZE = 3
+SFX_DATA = 4
+
+SFX_RADAR = [33792, 1, 1783, 3277, 32333, 0, 1014, 1024, 32333, 0, 1027, 1024, 32586, 0, 1022, 1024, 32586, 1, 32834, 0, 60]
+SFX_LASER = [33808, 1, 446, 3277, 31691, 0, 522, 512, 31691, 0, 4096, 1024, 41, 0, 3072, 102, 28668, 0, 32913, 447, 0, 0]
+SFX_PAD = [33568, 1, 1486, 6554, 31691, 0, 8192, 256, 30650, 0, 12493, 51, 30650, 0, 32929, 1337, 0, 2, 32865, 1189, 60]
+SFX_DEAD = [33840, 1, 312, 6554, 31691, 0, 1126, 1024, 31691, 0, 1229, 1024, 31691, 0, 1331, 1024, 31691, 0, 32945, 594, 0, 1, 32881, 446, 1, 32881, 297, 1, 32881, 149, 1, 32881, 134, 60]
 
 save_game('gerion.bin', load_code('gerion.py'))

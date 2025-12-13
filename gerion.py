@@ -319,6 +319,7 @@ def loadlev():
         cb += 1
 
     PADS_MAX = PADS_NR
+    prev_pads_nr = PADS_MAX
 
 def draw_rect(ptr, x, y, w, h, col):
     if (ptr >= {RECT_MEM+RECT_SIZE*RECT_NUM}):
@@ -403,6 +404,7 @@ def obs_laser(obs, hit, health):
     if (e >= health) & not_bit(obs[0], {OBS_DEAD}):
         obs[0] = bit_sethi(obs[0], {OBS_MASK}, 0)
         obs[0] |= {OBS_DEAD}
+        SND_DEAD = 1
     elif not_bit(obs[0], {OBS_DEAD}):
         obs[0] = bit_sethi(obs[0], {OBS_MASK}, e)
 
@@ -417,6 +419,7 @@ def alien_hit_laser(a):
         a[2] = bit_sethi(a[2], {ALIEN_MASK}, e)
     elif not_bit(a[2], {ALIEN_DEAD}):
         a[2] = {ALIEN_DEAD | (ALIEN_HEALTH<<8)}
+        SND_DEAD = 2
 
 def upd_laser():
     a = ALIENS
@@ -1320,9 +1323,11 @@ def upd_hero():
 
 EXPLODE_MODE = 0
 TITLE_MODE = 0
+SND_DEAD = 0
 
 def update():
     kbd_proc()
+    SND_DEAD = 0
     EXPLODE_MODE = 0
     SHAKE_MODE = 0
     if SCROLL_MODE > 0:
@@ -1552,11 +1557,92 @@ def draw():
 
     ptr = draw_status(ptr)
 
+def sound():
+    if (SND_DEAD > 0) & (is_dead_now == 0):
+        sfx_start(sfx_dead, 3, 0)
+        is_dead_now = 1
+    elif (SND_DEAD <= 0) & is_dead_now:
+        is_dead_now = 0
+
+    if prev_pads_nr != PADS_NR:
+        sfx_start(sfx_pad, 2, 0)
+        prev_pads_nr = PADS_NR
+
+    if (RADAR_MODE > 0) & (is_radar_on == 0):
+        sfx_start(sfx_radar, 0, 0)
+        is_radar_on = 1
+    elif (RADAR_MODE <= 0) & is_radar_on:
+        is_radar_on = 0
+
+    if (LASER_X >= 0) & (is_laser_on == 0):
+        sfx_start(sfx_laser, 1, 1)
+        is_laser_on = 1
+    elif (LASER_X < 0) & is_laser_on:
+        sfx_stop(sfx_laser)
+        is_laser_on = 0
+
+    sfx_mix(sfx_chans, 4)
+  
+def sfx_start(sfx, ch, is_loop):
+    sfx[{SFX_POS}] = 0
+    sfx[{SFX_COUNT}] = 0
+    sfx[{SFX_LOOP}] = is_loop
+    sfx_chans[ch] = sfx
+
+def sfx_stop(sfx):
+    sfx[{SFX_LOOP}] = 0
+
+def sfx_play(sfx):
+    if sfx[{SFX_COUNT}] > 0:
+        sfx[{SFX_COUNT}] -= 1
+        return
+    pos = sfx[{SFX_POS}]
+    if pos >= sfx[{SFX_SIZE}]:
+        if sfx[{SFX_LOOP}] == 0:
+            return
+        pos = 0
+    data = sfx + {SFX_DATA}
+    do_params = 1
+    while do_params:
+        p = data[pos]
+        pos += 1
+        idx = p & 63
+        end = idx + ((p >> 6) & 63)
+        if p >> 15:
+            do_params = 0
+        while idx < end:
+            poke({VOICES_MEM} + idx, data[pos])
+            pos += 1
+            idx += 1
+    sfx[{SFX_COUNT}] = data[pos]
+    sfx[{SFX_POS}] = pos + 1
+
+def sfx_mix(chans, chans_num):
+    i = 0
+    while i < chans_num:
+        sfx = chans[i]
+        if sfx:
+            sfx_play(sfx)
+        i += 1
+
+is_dead_now = 0
+prev_pads_nr = 0
+is_radar_on = 0
+is_laser_on = 0
+is_pad_taken = 0
+
+sfx_chans = [0, 0, 0, 0]
+sfx_radar = {[0, 0, 0, len(SFX_RADAR)] + SFX_RADAR}
+sfx_laser = {[0, 0, 0, len(SFX_LASER)] + SFX_LASER}
+sfx_pad = {[0, 0, 0, len(SFX_PAD)] + SFX_PAD}
+sfx_dead = {[0, 0, 0, len(SFX_DEAD)] + SFX_DEAD}
+
 def main():
     setup()
     loadlev()
     while 1:
         update()
         draw()
+        sound()
         wait()
         FRAMES += 1
